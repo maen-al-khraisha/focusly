@@ -31,6 +31,7 @@ import {
     CheckCircle,
     Trophy,
 } from "lucide-react";
+import TaskCard from "@/components/TaskCard";
 
 export default function Tasks() {
     const { state, dispatch } = useApp();
@@ -104,17 +105,38 @@ export default function Tasks() {
 
     const getFilteredFinishedTasks = () => {
         const now = new Date();
+        const startOfToday = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate()
+        );
         const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
         const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-        return state.finishedTasks.filter((task) => {
-            const finishedDate = new Date(task.finishedAt);
+        // Combine finished tasks and in-progress tasks (active timers)
+        const inProgressTasks = state.tasks.filter(
+            (task) => state.activeTimers[task.id]
+        );
+        // Avoid duplicates if a task is both finished and in progress (shouldn't happen, but just in case)
+        const allTasks = [
+            ...state.finishedTasks,
+            ...inProgressTasks.filter(
+                (t) => !state.finishedTasks.some((ft) => ft.id === t.id)
+            ),
+        ];
 
+        return allTasks.filter((task) => {
+            // Use finishedAt for finished tasks, createdAt for in-progress
+            const date = task.finishedAt
+                ? new Date(task.finishedAt)
+                : new Date(task.createdAt);
             switch (completedTasksFilter) {
+                case "day":
+                    return date >= startOfToday;
                 case "week":
-                    return finishedDate >= oneWeekAgo;
+                    return date >= oneWeekAgo;
                 case "month":
-                    return finishedDate >= oneMonthAgo;
+                    return date >= oneMonthAgo;
                 case "all":
                 default:
                     return true;
@@ -213,7 +235,7 @@ export default function Tasks() {
                 </Dialog>
             </div>
 
-            {state.tasks.length === 0 ? (
+            {state.tasks.length === 0 && state.finishedTasks.length === 0 ? (
                 <Card>
                     <CardContent className='flex flex-col items-center justify-center py-12'>
                         <Clock className='h-12 w-12 text-dark_slate_gray-400 mb-4' />
@@ -239,109 +261,31 @@ export default function Tasks() {
             ) : (
                 <div className='grid gap-4'>
                     {state.tasks.map((task) => {
-                        const isTimerActive = !!state.activeTimers[task.id];
-                        const currentTime = timers[task.id] || 0;
-                        const totalDisplayTime = task.totalTime + currentTime;
-
+                        const anyTimerActive = Object.values(
+                            state.activeTimers
+                        ).some(Boolean);
                         return (
-                            <Card
+                            <TaskCard
                                 key={task.id}
-                                className='hover:shadow-md transition-shadow p-4'>
-                                <CardHeader>
-                                    <div className='flex items-start justify-between'>
-                                        <div className='flex-1'>
-                                            <CardTitle className='text-lg'>
-                                                {task.title}
-                                            </CardTitle>
-                                            {task.description && (
-                                                <CardDescription className='mt-1'>
-                                                    {task.description}
-                                                </CardDescription>
-                                            )}
-                                        </div>
-                                        <Button
-                                            variant='ghost'
-                                            size='sm'
-                                            onClick={() =>
-                                                handleDeleteTask(task.id)
-                                            }
-                                            className='text-auburn-600 hover:text-auburn-700 hover:bg-auburn-100'>
-                                            <Trash2 className='h-4 w-4' />
-                                        </Button>
-                                    </div>
-                                </CardHeader>
-                                <CardContent className='space-y-4'>
-                                    {/* Timer Section */}
-                                    <div className='flex items-center justify-between p-4 bg-vanilla-800 rounded-lg'>
-                                        <div className='flex items-center space-x-4'>
-                                            <div className='text-2xl font-mono font-bold text-dark_slate_gray-500'>
-                                                {formatTime(totalDisplayTime)}
-                                            </div>
-                                            {isTimerActive && (
-                                                <div className='flex items-center text-hunyadi_yellow-600'>
-                                                    <div className='w-2 h-2 bg-hunyadi_yellow-500 rounded-full animate-pulse mr-2' />
-                                                    <span className='text-sm font-medium'>
-                                                        Running
-                                                    </span>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className='flex space-x-2'>
-                                            <Button
-                                                variant='outline'
-                                                size='sm'
-                                                onClick={() =>
-                                                    handleFinishTask(task.id)
-                                                }
-                                                className='text-hunyadi_yellow-600 hover:text-hunyadi_yellow-700 hover:bg-hunyadi_yellow-50'>
-                                                <CheckCircle className='mr-2 h-4 w-4' />
-                                                Finish
-                                            </Button>
-                                            {isTimerActive ? (
-                                                <Button
-                                                    variant='outline'
-                                                    size='sm'
-                                                    onClick={() =>
-                                                        handleStopTimer(task.id)
-                                                    }>
-                                                    <Pause className='mr-2 h-4 w-4' />
-                                                    Stop
-                                                </Button>
-                                            ) : (
-                                                <Button
-                                                    size='sm'
-                                                    onClick={() =>
-                                                        handleStartTimer(
-                                                            task.id
-                                                        )
-                                                    }>
-                                                    <Play className='mr-2 h-4 w-4' />
-                                                    Start
-                                                </Button>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    {/* Memo Section */}
-                                    <div className='space-y-2'>
-                                        <Label htmlFor={`memo-${task.id}`}>
-                                            Task Notes
-                                        </Label>
-                                        <Textarea
-                                            id={`memo-${task.id}`}
-                                            value={task.memo || ""}
-                                            onChange={(e) =>
-                                                handleUpdateMemo(
-                                                    task.id,
-                                                    e.target.value
-                                                )
-                                            }
-                                            placeholder='Add notes, observations, or details about this task...'
-                                            rows={3}
-                                        />
-                                    </div>
-                                </CardContent>
-                            </Card>
+                                task={task}
+                                isTimerActive={!!state.activeTimers[task.id]}
+                                currentTime={timers[task.id] || 0}
+                                onStart={handleStartTimer}
+                                onStop={handleStopTimer}
+                                onFinish={handleFinishTask}
+                                onDelete={handleDeleteTask}
+                                formatTime={formatTime}
+                                onUpdateTask={(id, updates) =>
+                                    dispatch({
+                                        type: "UPDATE_TASK",
+                                        payload: { id, updates },
+                                    })
+                                }
+                                disableStart={
+                                    anyTimerActive &&
+                                    !state.activeTimers[task.id]
+                                }
+                            />
                         );
                     })}
                 </div>
@@ -362,6 +306,16 @@ export default function Tasks() {
                             </span>
                         </div>
                         <div className='flex space-x-2'>
+                            <Button
+                                variant={
+                                    completedTasksFilter === "day"
+                                        ? "default"
+                                        : "outline"
+                                }
+                                size='sm'
+                                onClick={() => setCompletedTasksFilter("day")}>
+                                Today
+                            </Button>
                             <Button
                                 variant={
                                     completedTasksFilter === "week"
