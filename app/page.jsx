@@ -64,7 +64,7 @@ export default function Home() {
     ];
 
     return (
-        <div className='min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50'>
+        <div className='min-h-screen bg-gradient-to-br from-secondary-100 via-secondary-500 to-accent-100'>
             {/* Header */}
             <header className='container mx-auto px-4 py-6'>
                 <nav className='flex items-center justify-between'>
@@ -87,15 +87,15 @@ export default function Home() {
             {/* Hero Section */}
             <main className='container mx-auto px-4 py-12'>
                 <div className='text-center max-w-4xl mx-auto'>
-                    <h1 className='text-5xl md:text-6xl font-bold text-gray-900 mb-6'>
+                    <h1 className='text-5xl md:text-6xl font-bold text-primary mb-6'>
                         Your All-in-One
-                        <span className='text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600'>
+                        <span className='text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-accent-600'>
                             {" "}
                             Productivity
                         </span>{" "}
                         Companion
                     </h1>
-                    <p className='text-xl text-gray-600 mb-8 max-w-2xl mx-auto'>
+                    <p className='text-xl text-secondary mb-8 max-w-2xl mx-auto'>
                         Streamline your workflow with smart task management,
                         habit tracking, and note-taking. Everything you need to
                         stay organized and achieve your goals.

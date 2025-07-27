@@ -138,14 +138,16 @@ export default function Tasks() {
     };
 
     return (
-        <div className='space-y-6'>
+        <div className='space-y-6 p-5'>
             <div className='flex items-center justify-between'>
                 <div>
-                    <h2 className='text-2xl font-bold text-gray-900'>Tasks</h2>
-                    <p className='text-gray-600'>
+                    <h2 className='text-2xl font-bold text-dark_slate_gray-500'>
+                        Tasks
+                    </h2>
+                    <p className='text-dark_slate_gray-400'>
                         Manage your tasks and track time spent on each one
                         {state.finishedTasks.length > 0 && (
-                            <span className='ml-2 text-green-600 font-medium'>
+                            <span className='ml-2 text-hunyadi_yellow-600 font-medium'>
                                 • {state.finishedTasks.length} completed
                             </span>
                         )}
@@ -214,11 +216,11 @@ export default function Tasks() {
             {state.tasks.length === 0 ? (
                 <Card>
                     <CardContent className='flex flex-col items-center justify-center py-12'>
-                        <Clock className='h-12 w-12 text-gray-400 mb-4' />
-                        <h3 className='text-lg font-medium text-gray-900 mb-2'>
+                        <Clock className='h-12 w-12 text-dark_slate_gray-400 mb-4' />
+                        <h3 className='text-lg font-medium text-dark_slate_gray-900 mb-2'>
                             No tasks yet
                         </h3>
-                        <p className='text-gray-600 text-center mb-6'>
+                        <p className='text-dark_slate_gray-600 text-center mb-6'>
                             Create your first task to start tracking your
                             productivity and managing your time effectively.
                         </p>
@@ -244,7 +246,7 @@ export default function Tasks() {
                         return (
                             <Card
                                 key={task.id}
-                                className='hover:shadow-md transition-shadow'>
+                                className='hover:shadow-md transition-shadow p-4'>
                                 <CardHeader>
                                     <div className='flex items-start justify-between'>
                                         <div className='flex-1'>
@@ -263,21 +265,21 @@ export default function Tasks() {
                                             onClick={() =>
                                                 handleDeleteTask(task.id)
                                             }
-                                            className='text-red-600 hover:text-red-700 hover:bg-red-50'>
+                                            className='text-auburn-600 hover:text-auburn-700 hover:bg-auburn-100'>
                                             <Trash2 className='h-4 w-4' />
                                         </Button>
                                     </div>
                                 </CardHeader>
                                 <CardContent className='space-y-4'>
                                     {/* Timer Section */}
-                                    <div className='flex items-center justify-between p-4 bg-gray-50 rounded-lg'>
+                                    <div className='flex items-center justify-between p-4 bg-vanilla-800 rounded-lg'>
                                         <div className='flex items-center space-x-4'>
-                                            <div className='text-2xl font-mono font-bold text-gray-900'>
+                                            <div className='text-2xl font-mono font-bold text-dark_slate_gray-500'>
                                                 {formatTime(totalDisplayTime)}
                                             </div>
                                             {isTimerActive && (
-                                                <div className='flex items-center text-green-600'>
-                                                    <div className='w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2' />
+                                                <div className='flex items-center text-hunyadi_yellow-600'>
+                                                    <div className='w-2 h-2 bg-hunyadi_yellow-500 rounded-full animate-pulse mr-2' />
                                                     <span className='text-sm font-medium'>
                                                         Running
                                                     </span>
@@ -291,7 +293,7 @@ export default function Tasks() {
                                                 onClick={() =>
                                                     handleFinishTask(task.id)
                                                 }
-                                                className='text-green-600 hover:text-green-700 hover:bg-green-50'>
+                                                className='text-hunyadi_yellow-600 hover:text-hunyadi_yellow-700 hover:bg-hunyadi_yellow-50'>
                                                 <CheckCircle className='mr-2 h-4 w-4' />
                                                 Finish
                                             </Button>
@@ -350,11 +352,11 @@ export default function Tasks() {
                 <div className='space-y-4'>
                     <div className='flex items-center justify-between'>
                         <div className='flex items-center space-x-2'>
-                            <Trophy className='h-5 w-5 text-green-600' />
-                            <h3 className='text-lg font-semibold text-gray-900'>
+                            <Trophy className='h-5 w-5 text-hunyadi_yellow-600' />
+                            <h3 className='text-lg font-semibold text-dark_slate_gray-900'>
                                 Completed Tasks
                             </h3>
-                            <span className='text-sm text-gray-500'>
+                            <span className='text-sm text-dark_slate_gray-500'>
                                 ({filteredFinishedTasks.length} of{" "}
                                 {state.finishedTasks.length})
                             </span>
@@ -396,13 +398,13 @@ export default function Tasks() {
                     </div>
 
                     {filteredFinishedTasks.length === 0 ? (
-                        <Card className='border-dashed border-2 border-gray-300'>
+                        <Card className='border-dashed border-2 border-dark_slate_gray-300'>
                             <CardContent className='flex flex-col items-center justify-center py-8'>
-                                <Trophy className='h-8 w-8 text-gray-400 mb-4' />
-                                <h3 className='text-lg font-medium text-gray-900 mb-2'>
+                                <Trophy className='h-8 w-8 text-dark_slate_gray-400 mb-4' />
+                                <h3 className='text-lg font-medium text-dark_slate_gray-900 mb-2'>
                                     No completed tasks in this period
                                 </h3>
-                                <p className='text-gray-600 text-center text-sm'>
+                                <p className='text-dark_slate_gray-600 text-center text-sm'>
                                     {completedTasksFilter === "week" &&
                                         "No tasks completed in the last week."}
                                     {completedTasksFilter === "month" &&
@@ -417,22 +419,22 @@ export default function Tasks() {
                             {filteredFinishedTasks.map((task) => (
                                 <Card
                                     key={task.id}
-                                    className='bg-green-50 border-green-200'>
+                                    className='bg-hunyadi_yellow-100 border-hunyadi_yellow-300'>
                                     <CardHeader>
                                         <div className='flex items-start justify-between'>
                                             <div className='flex-1'>
                                                 <div className='flex items-center space-x-2'>
-                                                    <CheckCircle className='h-5 w-5 text-green-600' />
-                                                    <CardTitle className='text-lg text-green-800'>
+                                                    <CheckCircle className='h-5 w-5 text-hunyadi_yellow-600' />
+                                                    <CardTitle className='text-lg text-hunyadi_yellow-800'>
                                                         {task.title}
                                                     </CardTitle>
                                                 </div>
                                                 {task.description && (
-                                                    <CardDescription className='mt-1 text-green-700'>
+                                                    <CardDescription className='mt-1 text-hunyadi_yellow-700'>
                                                         {task.description}
                                                     </CardDescription>
                                                 )}
-                                                <div className='mt-2 text-sm text-green-600'>
+                                                <div className='mt-2 text-sm text-hunyadi_yellow-600'>
                                                     Completed on{" "}
                                                     {new Date(
                                                         task.finishedAt
@@ -456,21 +458,21 @@ export default function Tasks() {
                                                         task.id
                                                     )
                                                 }
-                                                className='text-red-600 hover:text-red-700 hover:bg-red-50'>
+                                                className='text-auburn-600 hover:text-auburn-700 hover:bg-auburn-100'>
                                                 <Trash2 className='h-4 w-4' />
                                             </Button>
                                         </div>
                                     </CardHeader>
                                     <CardContent className='space-y-4'>
                                         {/* Total Time Display */}
-                                        <div className='flex items-center justify-between p-3 bg-white rounded-lg border'>
+                                        <div className='flex items-center justify-between p-3 bg-vanilla-900 rounded-lg border border-vanilla-400'>
                                             <div className='flex items-center space-x-2'>
-                                                <Clock className='h-4 w-4 text-gray-500' />
-                                                <span className='text-sm font-medium text-gray-700'>
+                                                <Clock className='h-4 w-4 text-dark_slate_gray-300' />
+                                                <span className='text-sm font-medium text-dark_slate_gray-400'>
                                                     Total Time:
                                                 </span>
                                             </div>
-                                            <div className='text-lg font-mono font-bold text-green-700'>
+                                            <div className='text-lg font-mono font-bold text-hunyadi_yellow-700'>
                                                 {formatTime(
                                                     task.totalTime || 0
                                                 )}
@@ -480,10 +482,10 @@ export default function Tasks() {
                                         {/* Task Notes */}
                                         {task.memo && (
                                             <div className='space-y-2'>
-                                                <Label className='text-green-800'>
+                                                <Label className='text-hunyadi_yellow-800'>
                                                     Task Notes
                                                 </Label>
-                                                <div className='p-3 bg-white rounded-lg border text-sm text-gray-700 whitespace-pre-wrap'>
+                                                <div className='p-3 bg-vanilla-900 rounded-lg border border-vanilla-400 text-sm text-dark_slate_gray-400 whitespace-pre-wrap'>
                                                     {task.memo}
                                                 </div>
                                             </div>

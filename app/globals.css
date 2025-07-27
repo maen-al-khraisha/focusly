@@ -54,6 +54,61 @@
         --chart-4: 262 83% 67%; /* Habit Tracker - Violet */
         --chart-5: 204 80% 60%; /* Extra - Sky */
 
+        /* Custom Palette: dark_slate_gray */
+        --dark_slate_gray-100: #0a1215;
+        --dark_slate_gray-200: #142429;
+        --dark_slate_gray-300: #1e373e;
+        --dark_slate_gray-400: #284952;
+        --dark_slate_gray-500: #335c67;
+        --dark_slate_gray-600: #4a8696;
+        --dark_slate_gray-700: #6fa9b8;
+        --dark_slate_gray-800: #9fc5d0;
+        --dark_slate_gray-900: #cfe2e7;
+
+        /* Custom Palette: vanilla */
+        --vanilla-100: #574a00;
+        --vanilla-200: #ad9300;
+        --vanilla-300: #ffda05;
+        --vanilla-400: #ffe75c;
+        --vanilla-500: #fff3b0;
+        --vanilla-600: #fff6c2;
+        --vanilla-700: #fff8d1;
+        --vanilla-800: #fffae0;
+        --vanilla-900: #fffdf0;
+
+        /* Custom Palette: hunyadi_yellow */
+        --hunyadi_yellow-100: #312108;
+        --hunyadi_yellow-200: #624110;
+        --hunyadi_yellow-300: #936218;
+        --hunyadi_yellow-400: #c48320;
+        --hunyadi_yellow-500: #e09f3e;
+        --hunyadi_yellow-600: #e6b265;
+        --hunyadi_yellow-700: #ecc58b;
+        --hunyadi_yellow-800: #f2d9b2;
+        --hunyadi_yellow-900: #f9ecd8;
+
+        /* Custom Palette: auburn */
+        --auburn-100: #1f0809;
+        --auburn-200: #3f1111;
+        --auburn-300: #5e191a;
+        --auburn-400: #7e2123;
+        --auburn-500: #9e2a2b;
+        --auburn-600: #cb3a3d;
+        --auburn-700: #d86c6d;
+        --auburn-800: #e59d9e;
+        --auburn-900: #f2cece;
+
+        /* Custom Palette: chocolate_cosmos */
+        --chocolate_cosmos-100: #110203;
+        --chocolate_cosmos-200: #220405;
+        --chocolate_cosmos-300: #330708;
+        --chocolate_cosmos-400: #45090b;
+        --chocolate_cosmos-500: #540b0e;
+        --chocolate_cosmos-600: #9f1519;
+        --chocolate_cosmos-700: #e2242a;
+        --chocolate_cosmos-800: #ec6d71;
+        --chocolate_cosmos-900: #f5b6b8;
+
         --radius: 0.5rem;
     }
 
