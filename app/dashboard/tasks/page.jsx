@@ -538,6 +538,7 @@ export default function TasksPage() {
                                                 </button>
                                             )}
                                             {w.id &&
+                                                typeof w.id === "string" &&
                                                 w.id.startsWith("completed-") &&
                                                 w.totalTime === 0 && (
                                                     <span className='text-xs text-gray-400 italic'>
