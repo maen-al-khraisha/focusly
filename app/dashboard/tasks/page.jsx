@@ -292,9 +292,10 @@ export default function TasksPage() {
                 />
                 <button
                     type='submit'
-                    className='bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50'
+                    className='bg-[#335c67] text-[#fff3b0] flex items-center gap-2 px-5 py-2 rounded-lg font-semibold shadow hover:bg-[#284952] disabled:opacity-50'
                     disabled={adding}>
-                    {adding ? "Adding..." : "Add Task"}
+                    <span className='text-xl font-bold'>+</span>
+                    Add Task
                 </button>
             </form>
             {loading ? (
