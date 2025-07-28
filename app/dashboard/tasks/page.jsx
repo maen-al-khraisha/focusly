@@ -34,6 +34,10 @@ export default function TasksPage() {
     const [endDate, setEndDate] = useState(() => new Date());
     const [workHistory, setWorkHistory] = useState([]);
     const [historyLoading, setHistoryLoading] = useState(false);
+    const [editingTitleId, setEditingTitleId] = useState(null);
+    const [editingDescId, setEditingDescId] = useState(null);
+    const [editTitle, setEditTitle] = useState("");
+    const [editDesc, setEditDesc] = useState("");
 
     useEffect(() => {
         fetchTasks();
@@ -137,7 +141,7 @@ export default function TasksPage() {
         });
         setElapsed((prev) => {
             const updated = { ...prev };
-            delete updated[taskId];
+            updated[taskId] = 0;
             return updated;
         });
     };
@@ -151,6 +155,89 @@ export default function TasksPage() {
             fetchWorkHistory();
         } catch (err) {
             setError("Failed to delete task");
+        }
+    };
+
+    const handleEditTitleClick = (task) => {
+        setEditingTitleId(task.id);
+        setEditTitle(task.title);
+    };
+    const handleEditDescClick = (task) => {
+        setEditingDescId(task.id);
+        setEditDesc(task.description || "");
+    };
+    const handleEditTitleSave = async (taskId) => {
+        try {
+            const res = await axios.put(`/api/tasks/${taskId}`, {
+                title: editTitle,
+            });
+            setTasks((tasks) =>
+                tasks.map((t) => (t.id === taskId ? res.data : t))
+            );
+            fetchWorkHistory();
+        } catch (err) {
+            setError("Failed to update task");
+        }
+        setEditingTitleId(null);
+    };
+    const handleEditDescSave = async (taskId) => {
+        try {
+            const res = await axios.put(`/api/tasks/${taskId}`, {
+                description: editDesc,
+            });
+            setTasks((tasks) =>
+                tasks.map((t) => (t.id === taskId ? res.data : t))
+            );
+            fetchWorkHistory();
+        } catch (err) {
+            setError("Failed to update task");
+        }
+        setEditingDescId(null);
+    };
+    const handleEditTitleKeyDown = (e, taskId) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            handleEditTitleSave(taskId);
+        } else if (e.key === "Escape") {
+            setEditingTitleId(null);
+        }
+    };
+    const handleEditDescKeyDown = (e, taskId) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            handleEditDescSave(taskId);
+        } else if (e.key === "Escape") {
+            setEditingDescId(null);
+        }
+    };
+
+    // Only show incomplete tasks in the main list
+    const activeTasks = tasks.filter((t) => !t.completed);
+    // Add complete/reopen handlers
+    const handleCompleteTask = async (taskId) => {
+        try {
+            const res = await axios.put(`/api/tasks/${taskId}`, {
+                completed: true,
+            });
+            setTasks((tasks) =>
+                tasks.map((t) => (t.id === taskId ? res.data : t))
+            );
+            fetchWorkHistory();
+        } catch (err) {
+            setError("Failed to complete task");
+        }
+    };
+    const handleReopenTask = async (taskId) => {
+        try {
+            const res = await axios.put(`/api/tasks/${taskId}`, {
+                completed: false,
+            });
+            setTasks((tasks) =>
+                tasks.map((t) => (t.id === taskId ? res.data : t))
+            );
+            fetchWorkHistory();
+        } catch (err) {
+            setError("Failed to reopen task");
         }
     };
 
@@ -214,21 +301,61 @@ export default function TasksPage() {
                 <div>Loading tasks...</div>
             ) : error ? (
                 <div className='text-red-600'>{error}</div>
-            ) : tasks.length === 0 ? (
+            ) : activeTasks.length === 0 ? (
                 <div>No tasks yet. Add your first task above!</div>
             ) : (
                 <ul className='space-y-4'>
-                    {tasks.map((task) => (
+                    {activeTasks.map((task) => (
                         <li
                             key={task.id}
                             className='border rounded p-4 bg-white shadow flex flex-col gap-2'>
-                            <div className='font-semibold text-lg'>
-                                {task.title}
-                            </div>
-                            {task.description && (
-                                <div className='text-gray-600'>
-                                    {task.description}
+                            {editingTitleId === task.id ? (
+                                <input
+                                    name='title'
+                                    className='border-b font-semibold text-lg w-full mb-1'
+                                    value={editTitle}
+                                    onChange={(e) =>
+                                        setEditTitle(e.target.value)
+                                    }
+                                    onBlur={() => handleEditTitleSave(task.id)}
+                                    onKeyDown={(e) =>
+                                        handleEditTitleKeyDown(e, task.id)
+                                    }
+                                    autoFocus
+                                />
+                            ) : (
+                                <div
+                                    className='font-semibold text-lg cursor-pointer hover:underline'
+                                    onClick={() => handleEditTitleClick(task)}
+                                    title='Click to edit'>
+                                    {task.title}
                                 </div>
+                            )}
+                            {editingDescId === task.id ? (
+                                <textarea
+                                    name='description'
+                                    className='border rounded w-full text-gray-600 mb-2'
+                                    value={editDesc}
+                                    onChange={(e) =>
+                                        setEditDesc(e.target.value)
+                                    }
+                                    onBlur={() => handleEditDescSave(task.id)}
+                                    onKeyDown={(e) =>
+                                        handleEditDescKeyDown(e, task.id)
+                                    }
+                                    autoFocus
+                                />
+                            ) : (
+                                task.description && (
+                                    <div
+                                        className='text-gray-600 cursor-pointer hover:underline'
+                                        onClick={() =>
+                                            handleEditDescClick(task)
+                                        }
+                                        title='Click to edit'>
+                                        {task.description}
+                                    </div>
+                                )
                             )}
                             <div className='flex items-center gap-4 mt-2'>
                                 <button
@@ -247,13 +374,19 @@ export default function TasksPage() {
                                 <span className='font-mono'>
                                     {timers[task.id]
                                         ? formatTime(elapsed[task.id] || 0)
-                                        : formatTime(todayWork[task.id] || 0)}
+                                        : formatTime(0)}
                                 </span>
                                 <span className='text-xs text-gray-500'>
                                     {timers[task.id]
                                         ? "Timer running"
                                         : "Today"}
                                 </span>
+                                <button
+                                    className='px-2 py-1 rounded bg-green-100 text-green-700 hover:bg-green-200'
+                                    onClick={() => handleCompleteTask(task.id)}
+                                    title='Mark as Complete'>
+                                    Complete
+                                </button>
                                 <button
                                     className='ml-auto px-2 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200'
                                     onClick={() => handleDeleteTask(task.id)}
@@ -268,7 +401,7 @@ export default function TasksPage() {
 
             {/* Work History Section */}
             <div className='mt-10 p-6 bg-gray-50 rounded shadow space-y-4'>
-                <div className='flex items-center gap-4 mb-2'>
+                <div className='flex flex-col gap-4 mb-2'>
                     <h2 className='text-xl font-bold flex-1'>Work History</h2>
                     <div className='flex items-center gap-2'>
                         <span className='text-sm'>From:</span>
@@ -324,6 +457,16 @@ export default function TasksPage() {
                                                 w.date
                                             ).toLocaleDateString()}
                                         </span>
+                                        {w.task && w.task.completed && (
+                                            <button
+                                                className='ml-2 px-2 py-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-200'
+                                                onClick={() =>
+                                                    handleReopenTask(w.task.id)
+                                                }
+                                                title='Reopen Task'>
+                                                Reopen
+                                            </button>
+                                        )}
                                     </div>
                                 </li>
                             );

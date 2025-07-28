@@ -4,7 +4,13 @@ const prisma = new PrismaClient();
 
 export default async function handler(req, res) {
     if (req.method === "GET") {
+        const { completed } = req.query;
+        const where = {};
+        if (completed !== undefined) {
+            where.completed = completed === "true";
+        }
         const tasks = await prisma.task.findMany({
+            where,
             orderBy: { createdAt: "desc" },
         });
         return res.status(200).json(tasks);
@@ -13,7 +19,7 @@ export default async function handler(req, res) {
         const { title, description } = req.body;
         if (!title) return res.status(400).json({ error: "Title is required" });
         const task = await prisma.task.create({
-            data: { title, description },
+            data: { title, description, completed: false },
         });
         return res.status(201).json(task);
     }

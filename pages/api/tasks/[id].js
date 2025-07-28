@@ -12,11 +12,11 @@ export default async function handler(req, res) {
         return res.status(200).json(task);
     }
     if (req.method === "PUT") {
-        const { title, description } = req.body;
+        const { title, description, completed } = req.body;
         try {
             const task = await prisma.task.update({
                 where: { id: Number(id) },
-                data: { title, description },
+                data: { title, description, completed },
             });
             return res.status(200).json(task);
         } catch (e) {
