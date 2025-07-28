@@ -24,6 +24,7 @@ export default async function handler(req, res) {
                             id: true,
                             title: true,
                             description: true,
+                            status: true,
                         },
                     },
                 },
@@ -40,9 +41,11 @@ export default async function handler(req, res) {
         try {
             const { taskId, date, totalTime } = req.body;
             if (!taskId || !date || totalTime === undefined) {
-                return res.status(400).json({
-                    error: "taskId, date, and totalTime are required",
-                });
+                return res
+                    .status(400)
+                    .json({
+                        error: "taskId, date, and totalTime are required",
+                    });
             }
             const dailyWork = await prisma.dailyWork.upsert({
                 where: {

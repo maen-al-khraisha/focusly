@@ -24,21 +24,31 @@ export default async function handler(req, res) {
                             id: true,
                             title: true,
                             description: true,
-                            completed: true,
+                            status: true,
                         },
                     },
                 },
                 orderBy: { date: "desc" },
             });
 
-            // Get completed tasks that don't have daily work records in the date range
-            let completedTasksWhere = { completed: true };
+            // Get completed tasks that don't have daily work records
+            let completedTasksWhere = { status: "completed" };
             if (startDate && endDate) {
-                // Get tasks that were completed within the date range
-                completedTasksWhere.updatedAt = {
-                    gte: new Date(startDate),
-                    lte: new Date(endDate),
-                };
+                // Get tasks that were either created or completed within the date range
+                completedTasksWhere.OR = [
+                    {
+                        createdAt: {
+                            gte: new Date(startDate),
+                            lte: new Date(endDate),
+                        },
+                    },
+                    {
+                        updatedAt: {
+                            gte: new Date(startDate),
+                            lte: new Date(endDate),
+                        },
+                    },
+                ];
             }
 
             const completedTasks = await prisma.task.findMany({
@@ -47,8 +57,9 @@ export default async function handler(req, res) {
                     id: true,
                     title: true,
                     description: true,
-                    completed: true,
+                    status: true,
                     updatedAt: true,
+                    createdAt: true,
                 },
                 orderBy: { updatedAt: "desc" },
             });
@@ -71,7 +82,7 @@ export default async function handler(req, res) {
                         id: task.id,
                         title: task.title,
                         description: task.description,
-                        completed: task.completed,
+                        status: task.status,
                     },
                 })),
             ];

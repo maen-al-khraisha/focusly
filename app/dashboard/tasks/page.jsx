@@ -118,7 +118,21 @@ export default function TasksPage() {
         setAdding(false);
     };
 
-    const handleStart = (taskId) => {
+    const handleStart = async (taskId) => {
+        // Update task status to in_progress when starting timer
+        try {
+            await axios.put(`/api/tasks/${taskId}`, {
+                status: "in_progress",
+            });
+            setTasks((tasks) =>
+                tasks.map((t) =>
+                    t.id === taskId ? { ...t, status: "in_progress" } : t
+                )
+            );
+        } catch (err) {
+            setError("Failed to update task status");
+        }
+
         setTimers((prev) => ({ ...prev, [taskId]: Date.now() }));
         setElapsed((prev) => ({ ...prev, [taskId]: 0 }));
     };
@@ -212,13 +226,14 @@ export default function TasksPage() {
         }
     };
 
-    // Only show incomplete tasks in the main list
-    const activeTasks = tasks.filter((t) => !t.completed);
+    // Show active tasks (not_started and in_progress)
+    const activeTasks = tasks.filter((t) => t.status !== "completed");
+
     // Add complete/reopen handlers
     const handleCompleteTask = async (taskId) => {
         try {
             const res = await axios.put(`/api/tasks/${taskId}`, {
-                completed: true,
+                status: "completed",
             });
             setTasks((tasks) =>
                 tasks.map((t) => (t.id === taskId ? res.data : t))
@@ -231,7 +246,7 @@ export default function TasksPage() {
     const handleReopenTask = async (taskId) => {
         try {
             const res = await axios.put(`/api/tasks/${taskId}`, {
-                completed: false,
+                status: "not_started",
             });
             setTasks((tasks) =>
                 tasks.map((t) => (t.id === taskId ? res.data : t))
@@ -432,7 +447,10 @@ export default function TasksPage() {
                                             <span className='text-xs text-gray-500'>
                                                 {timers[task.id]
                                                     ? "Timer running"
-                                                    : "Today"}
+                                                    : task.status ===
+                                                      "in_progress"
+                                                    ? "In progress"
+                                                    : "Not started"}
                                             </span>
                                         </div>
                                         <div className='flex items-center gap-2'>
@@ -525,20 +543,21 @@ export default function TasksPage() {
                                                     w.date
                                                 ).toLocaleDateString()}
                                             </span>
-                                            {w.task && w.task.completed && (
-                                                <button
-                                                    className='ml-2 px-2 py-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-200'
-                                                    onClick={() =>
-                                                        handleReopenTask(
-                                                            w.task.id
-                                                        )
-                                                    }
-                                                    title='Reopen Task'>
-                                                    Reopen
-                                                </button>
-                                            )}
+                                            {w.task &&
+                                                w.task.status ===
+                                                    "completed" && (
+                                                    <button
+                                                        className='ml-2 px-2 py-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-200'
+                                                        onClick={() =>
+                                                            handleReopenTask(
+                                                                w.task.id
+                                                            )
+                                                        }
+                                                        title='Reopen Task'>
+                                                        Reopen
+                                                    </button>
+                                                )}
                                             {w.id &&
-                                                typeof w.id === "string" &&
                                                 w.id.startsWith("completed-") &&
                                                 w.totalTime === 0 && (
                                                     <span className='text-xs text-gray-400 italic'>
