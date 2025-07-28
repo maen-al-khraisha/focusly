@@ -17,6 +17,7 @@ function formatTime(seconds) {
 }
 
 export default function TasksPage() {
+    const [activeTab, setActiveTab] = useState("active"); // "active" or "history"
     const [tasks, setTasks] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -95,7 +96,7 @@ export default function TasksPage() {
                 startDate: startDate.toISOString().split("T")[0],
                 endDate: endDate.toISOString().split("T")[0],
             });
-            const res = await axios.get(`/api/daily-work?${params}`);
+            const res = await axios.get(`/api/work-history?${params}`);
             setWorkHistory(res.data);
         } catch {
             setWorkHistory([]);
@@ -272,246 +273,319 @@ export default function TasksPage() {
     return (
         <div className='max-w-2xl mx-auto p-6 space-y-8'>
             <h1 className='text-2xl font-bold mb-4'>Tasks</h1>
-            <form onSubmit={handleAddTask} className='flex flex-col gap-2 mb-6'>
-                <input
-                    className='border rounded px-3 py-2'
-                    placeholder='Task title'
-                    value={newTask.title}
-                    onChange={(e) =>
-                        setNewTask({ ...newTask, title: e.target.value })
-                    }
-                    required
-                />
-                <textarea
-                    className='border rounded px-3 py-2'
-                    placeholder='Description (optional)'
-                    value={newTask.description}
-                    onChange={(e) =>
-                        setNewTask({ ...newTask, description: e.target.value })
-                    }
-                />
-                <button
-                    type='submit'
-                    className='bg-[#335c67] text-[#fff3b0] flex items-center gap-2 px-5 py-2 rounded-lg font-semibold shadow hover:bg-[#284952] disabled:opacity-50'
-                    disabled={adding}>
-                    <span className='text-xl font-bold'>+</span>
-                    Add Task
-                </button>
-            </form>
-            {loading ? (
-                <div>Loading tasks...</div>
-            ) : error ? (
-                <div className='text-red-600'>{error}</div>
-            ) : activeTasks.length === 0 ? (
-                <div>No tasks yet. Add your first task above!</div>
-            ) : (
-                <ul className='space-y-4'>
-                    {activeTasks.map((task) => (
-                        <li
-                            key={task.id}
-                            className='border rounded p-4 bg-white shadow flex flex-col gap-2'>
-                            {editingTitleId === task.id ? (
-                                <input
-                                    name='title'
-                                    className='border-b font-semibold text-lg w-full mb-1'
-                                    value={editTitle}
-                                    onChange={(e) =>
-                                        setEditTitle(e.target.value)
-                                    }
-                                    onBlur={() => handleEditTitleSave(task.id)}
-                                    onKeyDown={(e) =>
-                                        handleEditTitleKeyDown(e, task.id)
-                                    }
-                                    autoFocus
-                                />
-                            ) : (
-                                <div
-                                    className='font-semibold text-lg cursor-pointer hover:underline'
-                                    onClick={() => handleEditTitleClick(task)}
-                                    title='Click to edit'>
-                                    {task.title}
-                                </div>
-                            )}
-                            {editingDescId === task.id ? (
-                                <textarea
-                                    name='description'
-                                    className='border rounded w-full text-gray-600 mb-2'
-                                    value={editDesc}
-                                    onChange={(e) =>
-                                        setEditDesc(e.target.value)
-                                    }
-                                    onBlur={() => handleEditDescSave(task.id)}
-                                    onKeyDown={(e) =>
-                                        handleEditDescKeyDown(e, task.id)
-                                    }
-                                    autoFocus
-                                />
-                            ) : (
-                                task.description && (
-                                    <div
-                                        className='text-gray-600 cursor-pointer hover:underline'
-                                        onClick={() =>
-                                            handleEditDescClick(task)
-                                        }
-                                        title='Click to edit'>
-                                        {task.description}
-                                    </div>
-                                )
-                            )}
-                            <div className='flex items-center gap-4 mt-2 justify-between'>
-                                <div className='flex items-center gap-2'>
-                                    <button
-                                        className={`px-3 py-1 rounded ${
-                                            timers[task.id]
-                                                ? "bg-red-600"
-                                                : "bg-green-600"
-                                        } text-white`}
-                                        onClick={() =>
-                                            timers[task.id]
-                                                ? handleStop(task.id)
-                                                : handleStart(task.id)
-                                        }>
-                                        {timers[task.id] ? "Stop" : "Start"}
-                                    </button>
-                                    <span className='font-mono'>
-                                        {timers[task.id]
-                                            ? formatTime(elapsed[task.id] || 0)
-                                            : formatTime(0)}
-                                    </span>
-                                    <span className='text-xs text-gray-500'>
-                                        {timers[task.id]
-                                            ? "Timer running"
-                                            : "Today"}
-                                    </span>
-                                </div>
-                                <div className='flex items-center gap-2'>
-                                    <button
-                                        className='px-2 py-1 rounded bg-green-100 text-green-700 hover:bg-green-200'
-                                        onClick={() =>
-                                            handleCompleteTask(task.id)
-                                        }
-                                        title='Mark as Complete'>
-                                        Finish
-                                    </button>
-                                    <button
-                                        className='ml-auto px-2 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200'
-                                        onClick={() =>
-                                            handleDeleteTask(task.id)
-                                        }
-                                        title='Delete Task'>
-                                        Delete
-                                    </button>
-                                </div>
-                            </div>
-                        </li>
-                    ))}
-                </ul>
-            )}
 
-            {/* Work History Section */}
-            <div className='mt-10 p-6 bg-gray-50 rounded shadow space-y-4'>
-                <div className='flex flex-col gap-4 mb-2'>
-                    <h2 className='text-xl font-bold flex-1'>Work History</h2>
-                    <div className='flex items-center gap-2'>
-                        <span className='text-sm'>From:</span>
-                        <DatePicker
-                            selected={startDate}
-                            onChange={(date) => setStartDate(date)}
-                            className='border rounded px-2 py-1 text-sm'
-                            dateFormat='yyyy-MM-dd'
+            {/* Tab Navigation */}
+            <div className='flex border-b border-gray-200'>
+                <button
+                    onClick={() => setActiveTab("active")}
+                    className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+                        activeTab === "active"
+                            ? "border-[#335c67] text-[#335c67]"
+                            : "border-transparent text-gray-500 hover:text-gray-700"
+                    }`}>
+                    Active Tasks
+                </button>
+                <button
+                    onClick={() => setActiveTab("history")}
+                    className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+                        activeTab === "history"
+                            ? "border-[#335c67] text-[#335c67]"
+                            : "border-transparent text-gray-500 hover:text-gray-700"
+                    }`}>
+                    Work History
+                </button>
+            </div>
+
+            {/* Active Tasks Tab */}
+            {activeTab === "active" && (
+                <div className='space-y-6'>
+                    <form
+                        onSubmit={handleAddTask}
+                        className='flex flex-col gap-2 mb-6'>
+                        <input
+                            className='border rounded px-3 py-2'
+                            placeholder='Task title'
+                            value={newTask.title}
+                            onChange={(e) =>
+                                setNewTask({
+                                    ...newTask,
+                                    title: e.target.value,
+                                })
+                            }
+                            required
                         />
-                        <span className='text-sm'>To:</span>
-                        <DatePicker
-                            selected={endDate}
-                            onChange={(date) => setEndDate(date)}
-                            className='border rounded px-2 py-1 text-sm'
-                            dateFormat='yyyy-MM-dd'
+                        <textarea
+                            className='border rounded px-3 py-2'
+                            placeholder='Description (optional)'
+                            value={newTask.description}
+                            onChange={(e) =>
+                                setNewTask({
+                                    ...newTask,
+                                    description: e.target.value,
+                                })
+                            }
                         />
-                    </div>
-                </div>
-                <div className='mb-2 text-lg font-semibold'>
-                    Total Time: {formatTime(totalHistoryTime)}
-                </div>
-                {historyLoading ? (
-                    <div>Loading work history...</div>
-                ) : workHistory.length === 0 &&
-                  Object.keys(runningTimeMap).length === 0 ? (
-                    <div>No work recorded in this period.</div>
-                ) : (
-                    <ul className='space-y-2'>
-                        {workHistory.map((w) => {
-                            const extra =
-                                w.date.startsWith(todayStr) &&
-                                runningTimeMap[w.id]
-                                    ? runningTimeMap[w.id]
-                                    : 0;
-                            return (
+                        <button
+                            type='submit'
+                            className='bg-[#335c67] text-[#fff3b0] flex items-center gap-2 px-5 py-2 rounded-lg font-semibold shadow hover:bg-[#284952] disabled:opacity-50'
+                            disabled={adding}>
+                            <span className='text-xl font-bold'>+</span>
+                            Add Task
+                        </button>
+                    </form>
+                    {loading ? (
+                        <div>Loading tasks...</div>
+                    ) : error ? (
+                        <div className='text-red-600'>{error}</div>
+                    ) : activeTasks.length === 0 ? (
+                        <div>No tasks yet. Add your first task above!</div>
+                    ) : (
+                        <ul className='space-y-4'>
+                            {activeTasks.map((task) => (
                                 <li
-                                    key={w.id}
-                                    className='border rounded p-3 bg-white flex flex-col md:flex-row md:items-center md:gap-4'>
-                                    <div className='flex-1'>
-                                        <div className='font-semibold'>
-                                            {w.task?.title || "Untitled Task"}
+                                    key={task.id}
+                                    className='border rounded p-4 bg-white shadow flex flex-col gap-2'>
+                                    {editingTitleId === task.id ? (
+                                        <input
+                                            name='title'
+                                            className='border-b font-semibold text-lg w-full mb-1'
+                                            value={editTitle}
+                                            onChange={(e) =>
+                                                setEditTitle(e.target.value)
+                                            }
+                                            onBlur={() =>
+                                                handleEditTitleSave(task.id)
+                                            }
+                                            onKeyDown={(e) =>
+                                                handleEditTitleKeyDown(
+                                                    e,
+                                                    task.id
+                                                )
+                                            }
+                                            autoFocus
+                                        />
+                                    ) : (
+                                        <div
+                                            className='font-semibold text-lg cursor-pointer hover:underline'
+                                            onClick={() =>
+                                                handleEditTitleClick(task)
+                                            }
+                                            title='Click to edit'>
+                                            {task.title}
                                         </div>
-                                        <div className='text-xs text-gray-500'>
-                                            {w.task?.description}
-                                        </div>
-                                    </div>
-                                    <div className='flex items-center gap-2 mt-2 md:mt-0'>
-                                        <span className='font-mono text-base'>
-                                            {formatTime(w.totalTime + extra)}
-                                        </span>
-                                        <span className='text-xs text-gray-500'>
-                                            {new Date(
-                                                w.date
-                                            ).toLocaleDateString()}
-                                        </span>
-                                        {w.task && w.task.completed && (
-                                            <button
-                                                className='ml-2 px-2 py-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-200'
+                                    )}
+                                    {editingDescId === task.id ? (
+                                        <textarea
+                                            name='description'
+                                            className='border rounded w-full text-gray-600 mb-2'
+                                            value={editDesc}
+                                            onChange={(e) =>
+                                                setEditDesc(e.target.value)
+                                            }
+                                            onBlur={() =>
+                                                handleEditDescSave(task.id)
+                                            }
+                                            onKeyDown={(e) =>
+                                                handleEditDescKeyDown(
+                                                    e,
+                                                    task.id
+                                                )
+                                            }
+                                            autoFocus
+                                        />
+                                    ) : (
+                                        task.description && (
+                                            <div
+                                                className='text-gray-600 cursor-pointer hover:underline'
                                                 onClick={() =>
-                                                    handleReopenTask(w.task.id)
+                                                    handleEditDescClick(task)
                                                 }
-                                                title='Reopen Task'>
-                                                Reopen
+                                                title='Click to edit'>
+                                                {task.description}
+                                            </div>
+                                        )
+                                    )}
+                                    <div className='flex items-center gap-4 mt-2 justify-between'>
+                                        <div className='flex items-center gap-2'>
+                                            <button
+                                                className={`px-3 py-1 rounded ${
+                                                    timers[task.id]
+                                                        ? "bg-red-600"
+                                                        : "bg-green-600"
+                                                } text-white`}
+                                                onClick={() =>
+                                                    timers[task.id]
+                                                        ? handleStop(task.id)
+                                                        : handleStart(task.id)
+                                                }>
+                                                {timers[task.id]
+                                                    ? "Stop"
+                                                    : "Start"}
                                             </button>
-                                        )}
+                                            <span className='font-mono'>
+                                                {timers[task.id]
+                                                    ? formatTime(
+                                                          elapsed[task.id] || 0
+                                                      )
+                                                    : formatTime(0)}
+                                            </span>
+                                            <span className='text-xs text-gray-500'>
+                                                {timers[task.id]
+                                                    ? "Timer running"
+                                                    : "Today"}
+                                            </span>
+                                        </div>
+                                        <div className='flex items-center gap-2'>
+                                            <button
+                                                className='px-2 py-1 rounded bg-green-100 text-green-700 hover:bg-green-200'
+                                                onClick={() =>
+                                                    handleCompleteTask(task.id)
+                                                }
+                                                title='Mark as Complete'>
+                                                Finish
+                                            </button>
+                                            <button
+                                                className='ml-auto px-2 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200'
+                                                onClick={() =>
+                                                    handleDeleteTask(task.id)
+                                                }
+                                                title='Delete Task'>
+                                                Delete
+                                            </button>
+                                        </div>
                                     </div>
                                 </li>
-                            );
-                        })}
-                        {/* Show pseudo-entries for running timers with no workHistory yet */}
-                        {Object.entries(runningTimeMap)
-                            .filter(([k]) => k.startsWith("new-"))
-                            .map(([k, v]) => {
-                                const taskId = Number(k.replace("new-", ""));
-                                const task = tasks.find((t) => t.id === taskId);
+                            ))}
+                        </ul>
+                    )}
+                </div>
+            )}
+
+            {/* Work History Tab */}
+            {activeTab === "history" && (
+                <div className='space-y-6'>
+                    <div className='flex flex-col gap-4 mb-2'>
+                        <h2 className='text-xl font-bold flex-1'>
+                            Work History
+                        </h2>
+                        <div className='flex items-center gap-2'>
+                            <span className='text-sm'>From:</span>
+                            <DatePicker
+                                selected={startDate}
+                                onChange={(date) => setStartDate(date)}
+                                className='border rounded px-2 py-1 text-sm'
+                                dateFormat='yyyy-MM-dd'
+                            />
+                            <span className='text-sm'>To:</span>
+                            <DatePicker
+                                selected={endDate}
+                                onChange={(date) => setEndDate(date)}
+                                className='border rounded px-2 py-1 text-sm'
+                                dateFormat='yyyy-MM-dd'
+                            />
+                        </div>
+                    </div>
+                    <div className='mb-2 text-lg font-semibold'>
+                        Total Time: {formatTime(totalHistoryTime)}
+                    </div>
+                    {historyLoading ? (
+                        <div>Loading work history...</div>
+                    ) : workHistory.length === 0 &&
+                      Object.keys(runningTimeMap).length === 0 ? (
+                        <div>No work recorded in this period.</div>
+                    ) : (
+                        <ul className='space-y-2'>
+                            {workHistory.map((w) => {
+                                const extra =
+                                    w.date.startsWith(todayStr) &&
+                                    runningTimeMap[w.id]
+                                        ? runningTimeMap[w.id]
+                                        : 0;
                                 return (
                                     <li
-                                        key={k}
+                                        key={w.id}
                                         className='border rounded p-3 bg-white flex flex-col md:flex-row md:items-center md:gap-4'>
                                         <div className='flex-1'>
                                             <div className='font-semibold'>
-                                                {task?.title || "Untitled Task"}
+                                                {w.task?.title ||
+                                                    "Untitled Task"}
                                             </div>
                                             <div className='text-xs text-gray-500'>
-                                                {task?.description}
+                                                {w.task?.description}
                                             </div>
                                         </div>
                                         <div className='flex items-center gap-2 mt-2 md:mt-0'>
                                             <span className='font-mono text-base'>
-                                                {formatTime(v)}
+                                                {formatTime(
+                                                    w.totalTime + extra
+                                                )}
                                             </span>
                                             <span className='text-xs text-gray-500'>
-                                                {new Date().toLocaleDateString()}
+                                                {new Date(
+                                                    w.date
+                                                ).toLocaleDateString()}
                                             </span>
+                                            {w.task && w.task.completed && (
+                                                <button
+                                                    className='ml-2 px-2 py-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-200'
+                                                    onClick={() =>
+                                                        handleReopenTask(
+                                                            w.task.id
+                                                        )
+                                                    }
+                                                    title='Reopen Task'>
+                                                    Reopen
+                                                </button>
+                                            )}
+                                            {w.id &&
+                                                w.id.startsWith("completed-") &&
+                                                w.totalTime === 0 && (
+                                                    <span className='text-xs text-gray-400 italic'>
+                                                        No work time
+                                                    </span>
+                                                )}
                                         </div>
                                     </li>
                                 );
                             })}
-                    </ul>
-                )}
-            </div>
+                            {/* Show pseudo-entries for running timers with no workHistory yet */}
+                            {Object.entries(runningTimeMap)
+                                .filter(([k]) => k.startsWith("new-"))
+                                .map(([k, v]) => {
+                                    const taskId = Number(
+                                        k.replace("new-", "")
+                                    );
+                                    const task = tasks.find(
+                                        (t) => t.id === taskId
+                                    );
+                                    return (
+                                        <li
+                                            key={k}
+                                            className='border rounded p-3 bg-white flex flex-col md:flex-row md:items-center md:gap-4'>
+                                            <div className='flex-1'>
+                                                <div className='font-semibold'>
+                                                    {task?.title ||
+                                                        "Untitled Task"}
+                                                </div>
+                                                <div className='text-xs text-gray-500'>
+                                                    {task?.description}
+                                                </div>
+                                            </div>
+                                            <div className='flex items-center gap-2 mt-2 md:mt-0'>
+                                                <span className='font-mono text-base'>
+                                                    {formatTime(v)}
+                                                </span>
+                                                <span className='text-xs text-gray-500'>
+                                                    {new Date().toLocaleDateString()}
+                                                </span>
+                                            </div>
+                                        </li>
+                                    );
+                                })}
+                        </ul>
+                    )}
+                </div>
+            )}
         </div>
     );
 }
