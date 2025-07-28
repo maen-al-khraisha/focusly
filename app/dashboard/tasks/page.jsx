@@ -1,456 +1,365 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useApp } from "@/context/AppContext";
-import { Button } from "@/components/ui/button";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-    Plus,
-    Play,
-    Pause,
-    Trash2,
-    Clock,
-    CheckCircle,
-    Trophy,
-} from "lucide-react";
-import TaskCard from "@/components/TaskCard";
+import axios from "axios";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 
-export default function Tasks() {
-    const { state, dispatch } = useApp();
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
+function formatTime(seconds) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0)
+        return `${h}:${m.toString().padStart(2, "0")}:${s
+            .toString()
+            .padStart(2, "0")}`;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+export default function TasksPage() {
+    const [tasks, setTasks] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [newTask, setNewTask] = useState({ title: "", description: "" });
+    const [adding, setAdding] = useState(false);
     const [timers, setTimers] = useState({});
-    const [completedTasksFilter, setCompletedTasksFilter] = useState("week"); // 'week', 'month', 'all'
+    const [elapsed, setElapsed] = useState({});
+    const [todayWork, setTodayWork] = useState({});
+    // Work history state
+    const [startDate, setStartDate] = useState(() => {
+        const d = new Date();
+        d.setDate(d.getDate() - 7);
+        return d;
+    });
+    const [endDate, setEndDate] = useState(() => new Date());
+    const [workHistory, setWorkHistory] = useState([]);
+    const [historyLoading, setHistoryLoading] = useState(false);
 
-    // Update timers every second
+    useEffect(() => {
+        fetchTasks();
+        fetchTodayWork();
+    }, []);
+
     useEffect(() => {
         const interval = setInterval(() => {
-            setTimers((prev) => {
+            setElapsed((prev) => {
                 const updated = { ...prev };
-                Object.keys(state.activeTimers).forEach((taskId) => {
-                    if (state.activeTimers[taskId]) {
-                        updated[taskId] = Math.floor(
-                            (Date.now() - state.activeTimers[taskId]) / 1000
-                        );
-                    }
+                Object.keys(timers).forEach((taskId) => {
+                    updated[taskId] = Math.floor(
+                        (Date.now() - timers[taskId]) / 1000
+                    );
                 });
                 return updated;
             });
         }, 1000);
-
         return () => clearInterval(interval);
-    }, [state.activeTimers]);
+    }, [timers]);
 
-    const handleAddTask = () => {
-        if (newTask.title.trim()) {
-            dispatch({
-                type: "ADD_TASK",
-                payload: {
-                    title: newTask.title,
-                    description: newTask.description,
-                    memo: "",
-                    totalTime: 0,
-                    createdAt: new Date().toISOString(),
-                },
+    useEffect(() => {
+        fetchWorkHistory();
+    }, [startDate, endDate]);
+
+    const fetchTasks = async () => {
+        setLoading(true);
+        try {
+            const res = await axios.get("/api/tasks");
+            setTasks(res.data);
+        } catch (err) {
+            setError("Failed to load tasks");
+        }
+        setLoading(false);
+    };
+
+    const fetchTodayWork = async () => {
+        const today = new Date().toISOString().split("T")[0];
+        try {
+            const res = await axios.get(
+                `/api/daily-work?startDate=${today}&endDate=${today}`
+            );
+            const map = {};
+            res.data.forEach((dw) => {
+                map[dw.taskId] = dw.totalTime;
             });
+            setTodayWork(map);
+        } catch {}
+    };
+
+    const fetchWorkHistory = async () => {
+        setHistoryLoading(true);
+        try {
+            const params = new URLSearchParams({
+                startDate: startDate.toISOString().split("T")[0],
+                endDate: endDate.toISOString().split("T")[0],
+            });
+            const res = await axios.get(`/api/daily-work?${params}`);
+            setWorkHistory(res.data);
+        } catch {
+            setWorkHistory([]);
+        }
+        setHistoryLoading(false);
+    };
+
+    const handleAddTask = async (e) => {
+        e.preventDefault();
+        if (!newTask.title.trim()) return;
+        setAdding(true);
+        try {
+            const res = await axios.post("/api/tasks", newTask);
+            setTasks([res.data, ...tasks]);
             setNewTask({ title: "", description: "" });
-            setIsDialogOpen(false);
+        } catch (err) {
+            setError("Failed to add task");
         }
+        setAdding(false);
     };
 
-    const handleStartTimer = (taskId) => {
-        dispatch({ type: "START_TIMER", payload: taskId });
+    const handleStart = (taskId) => {
+        setTimers((prev) => ({ ...prev, [taskId]: Date.now() }));
+        setElapsed((prev) => ({ ...prev, [taskId]: 0 }));
     };
 
-    const handleStopTimer = (taskId) => {
-        dispatch({ type: "STOP_TIMER", payload: taskId });
-    };
-
-    const handleUpdateMemo = (taskId, memo) => {
-        dispatch({
-            type: "UPDATE_TASK",
-            payload: { id: taskId, updates: { memo } },
+    const handleStop = async (taskId) => {
+        const seconds = elapsed[taskId] || 0;
+        if (seconds > 0) {
+            const today = new Date().toISOString().split("T")[0];
+            await axios.post("/api/daily-work", {
+                taskId,
+                date: today,
+                totalTime: seconds,
+            });
+            fetchTodayWork();
+            fetchWorkHistory();
+        }
+        setTimers((prev) => {
+            const updated = { ...prev };
+            delete updated[taskId];
+            return updated;
+        });
+        setElapsed((prev) => {
+            const updated = { ...prev };
+            delete updated[taskId];
+            return updated;
         });
     };
 
-    const handleDeleteTask = (taskId) => {
-        dispatch({ type: "DELETE_TASK", payload: taskId });
+    const handleDeleteTask = async (taskId) => {
+        if (!window.confirm("Are you sure you want to delete this task?"))
+            return;
+        try {
+            await axios.delete(`/api/tasks/${taskId}`);
+            setTasks((tasks) => tasks.filter((t) => t.id !== taskId));
+            fetchWorkHistory();
+        } catch (err) {
+            setError("Failed to delete task");
+        }
     };
 
-    const handleFinishTask = (taskId) => {
-        dispatch({ type: "FINISH_TASK", payload: taskId });
-    };
-
-    const handleDeleteFinishedTask = (taskId) => {
-        dispatch({ type: "DELETE_FINISHED_TASK", payload: taskId });
-    };
-
-    const getFilteredFinishedTasks = () => {
-        const now = new Date();
-        const startOfToday = new Date(
-            now.getFullYear(),
-            now.getMonth(),
-            now.getDate()
+    // Calculate total time in history, including running timers for today
+    const todayStr = new Date().toISOString().split("T")[0];
+    const runningTimeMap = {};
+    Object.entries(timers).forEach(([taskId, start]) => {
+        // Find if this task has a workHistory entry for today
+        const wh = workHistory.find(
+            (w) => w.taskId === Number(taskId) && w.date.startsWith(todayStr)
         );
-        const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-        // Combine finished tasks and in-progress tasks (active timers)
-        const inProgressTasks = state.tasks.filter(
-            (task) => state.activeTimers[task.id]
-        );
-        // Avoid duplicates if a task is both finished and in progress (shouldn't happen, but just in case)
-        const allTasks = [
-            ...state.finishedTasks,
-            ...inProgressTasks.filter(
-                (t) => !state.finishedTasks.some((ft) => ft.id === t.id)
-            ),
-        ];
-
-        return allTasks.filter((task) => {
-            // Use finishedAt for finished tasks, createdAt for in-progress
-            const date = task.finishedAt
-                ? new Date(task.finishedAt)
-                : new Date(task.createdAt);
-            switch (completedTasksFilter) {
-                case "day":
-                    return date >= startOfToday;
-                case "week":
-                    return date >= oneWeekAgo;
-                case "month":
-                    return date >= oneMonthAgo;
-                case "all":
-                default:
-                    return true;
+        const elapsedSec = elapsed[taskId] || 0;
+        if (wh) {
+            runningTimeMap[wh.id] = elapsedSec;
+        } else {
+            // If no entry, add a pseudo-entry for today
+            runningTimeMap[`new-${taskId}`] = elapsedSec;
+        }
+    });
+    const totalHistoryTime =
+        workHistory.reduce((sum, w) => {
+            let extra = 0;
+            if (w.date.startsWith(todayStr) && runningTimeMap[w.id]) {
+                extra = runningTimeMap[w.id];
             }
-        });
-    };
-
-    const filteredFinishedTasks = getFilteredFinishedTasks();
-
-    const formatTime = (seconds) => {
-        const hours = Math.floor(seconds / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-        const secs = seconds % 60;
-
-        if (hours > 0) {
-            return `${hours}:${minutes.toString().padStart(2, "0")}:${secs
-                .toString()
-                .padStart(2, "0")}`;
-        }
-        return `${minutes}:${secs.toString().padStart(2, "0")}`;
-    };
+            return sum + w.totalTime + extra;
+        }, 0) +
+        Object.entries(runningTimeMap)
+            .filter(([k]) => k.startsWith("new-"))
+            .reduce((sum, [k, v]) => sum + v, 0);
 
     return (
-        <div className='space-y-6 p-5'>
-            <div className='flex items-center justify-between'>
-                <div>
-                    <h2 className='text-2xl font-bold text-dark_slate_gray-500'>
-                        Tasks
-                    </h2>
-                    <p className='text-dark_slate_gray-400'>
-                        Manage your tasks and track time spent on each one
-                        {state.finishedTasks.length > 0 && (
-                            <span className='ml-2 text-hunyadi_yellow-600 font-medium'>
-                                • {state.finishedTasks.length} completed
-                            </span>
-                        )}
-                    </p>
-                </div>
-
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button>
-                            <Plus className='mr-2 h-4 w-4' />
-                            Add Task
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Add New Task</DialogTitle>
-                            <DialogDescription>
-                                Create a new task to track your productivity and
-                                time.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <div className='grid gap-4 py-4'>
-                            <div className='grid gap-2'>
-                                <Label htmlFor='title'>Task Title</Label>
-                                <Input
-                                    id='title'
-                                    value={newTask.title}
-                                    onChange={(e) =>
-                                        setNewTask({
-                                            ...newTask,
-                                            title: e.target.value,
-                                        })
-                                    }
-                                    placeholder='Enter task title...'
-                                />
-                            </div>
-                            <div className='grid gap-2'>
-                                <Label htmlFor='description'>
-                                    Description (Optional)
-                                </Label>
-                                <Textarea
-                                    id='description'
-                                    value={newTask.description}
-                                    onChange={(e) =>
-                                        setNewTask({
-                                            ...newTask,
-                                            description: e.target.value,
-                                        })
-                                    }
-                                    placeholder='Add task description...'
-                                />
-                            </div>
-                        </div>
-                        <DialogFooter>
-                            <Button
-                                variant='outline'
-                                onClick={() => setIsDialogOpen(false)}>
-                                Cancel
-                            </Button>
-                            <Button onClick={handleAddTask}>Add Task</Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-            </div>
-
-            {state.tasks.length === 0 && state.finishedTasks.length === 0 ? (
-                <Card>
-                    <CardContent className='flex flex-col items-center justify-center py-12'>
-                        <Clock className='h-12 w-12 text-dark_slate_gray-400 mb-4' />
-                        <h3 className='text-lg font-medium text-dark_slate_gray-900 mb-2'>
-                            No tasks yet
-                        </h3>
-                        <p className='text-dark_slate_gray-600 text-center mb-6'>
-                            Create your first task to start tracking your
-                            productivity and managing your time effectively.
-                        </p>
-                        <Dialog
-                            open={isDialogOpen}
-                            onOpenChange={setIsDialogOpen}>
-                            <DialogTrigger asChild>
-                                <Button>
-                                    <Plus className='mr-2 h-4 w-4' />
-                                    Add Your First Task
-                                </Button>
-                            </DialogTrigger>
-                        </Dialog>
-                    </CardContent>
-                </Card>
+        <div className='max-w-2xl mx-auto p-6 space-y-8'>
+            <h1 className='text-2xl font-bold mb-4'>Tasks</h1>
+            <form onSubmit={handleAddTask} className='flex flex-col gap-2 mb-6'>
+                <input
+                    className='border rounded px-3 py-2'
+                    placeholder='Task title'
+                    value={newTask.title}
+                    onChange={(e) =>
+                        setNewTask({ ...newTask, title: e.target.value })
+                    }
+                    required
+                />
+                <textarea
+                    className='border rounded px-3 py-2'
+                    placeholder='Description (optional)'
+                    value={newTask.description}
+                    onChange={(e) =>
+                        setNewTask({ ...newTask, description: e.target.value })
+                    }
+                />
+                <button
+                    type='submit'
+                    className='bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50'
+                    disabled={adding}>
+                    {adding ? "Adding..." : "Add Task"}
+                </button>
+            </form>
+            {loading ? (
+                <div>Loading tasks...</div>
+            ) : error ? (
+                <div className='text-red-600'>{error}</div>
+            ) : tasks.length === 0 ? (
+                <div>No tasks yet. Add your first task above!</div>
             ) : (
-                <div className='grid gap-4'>
-                    {state.tasks.map((task) => {
-                        const anyTimerActive = Object.values(
-                            state.activeTimers
-                        ).some(Boolean);
-                        return (
-                            <TaskCard
-                                key={task.id}
-                                task={task}
-                                isTimerActive={!!state.activeTimers[task.id]}
-                                currentTime={timers[task.id] || 0}
-                                onStart={handleStartTimer}
-                                onStop={handleStopTimer}
-                                onFinish={handleFinishTask}
-                                onDelete={handleDeleteTask}
-                                formatTime={formatTime}
-                                onUpdateTask={(id, updates) =>
-                                    dispatch({
-                                        type: "UPDATE_TASK",
-                                        payload: { id, updates },
-                                    })
-                                }
-                                disableStart={
-                                    anyTimerActive &&
-                                    !state.activeTimers[task.id]
-                                }
-                            />
-                        );
-                    })}
-                </div>
+                <ul className='space-y-4'>
+                    {tasks.map((task) => (
+                        <li
+                            key={task.id}
+                            className='border rounded p-4 bg-white shadow flex flex-col gap-2'>
+                            <div className='font-semibold text-lg'>
+                                {task.title}
+                            </div>
+                            {task.description && (
+                                <div className='text-gray-600'>
+                                    {task.description}
+                                </div>
+                            )}
+                            <div className='flex items-center gap-4 mt-2'>
+                                <button
+                                    className={`px-3 py-1 rounded ${
+                                        timers[task.id]
+                                            ? "bg-red-600"
+                                            : "bg-green-600"
+                                    } text-white`}
+                                    onClick={() =>
+                                        timers[task.id]
+                                            ? handleStop(task.id)
+                                            : handleStart(task.id)
+                                    }>
+                                    {timers[task.id] ? "Stop" : "Start"}
+                                </button>
+                                <span className='font-mono'>
+                                    {timers[task.id]
+                                        ? formatTime(elapsed[task.id] || 0)
+                                        : formatTime(todayWork[task.id] || 0)}
+                                </span>
+                                <span className='text-xs text-gray-500'>
+                                    {timers[task.id]
+                                        ? "Timer running"
+                                        : "Today"}
+                                </span>
+                                <button
+                                    className='ml-auto px-2 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200'
+                                    onClick={() => handleDeleteTask(task.id)}
+                                    title='Delete Task'>
+                                    Delete
+                                </button>
+                            </div>
+                        </li>
+                    ))}
+                </ul>
             )}
 
-            {/* Finished Tasks Section */}
-            {state.finishedTasks.length > 0 && (
-                <div className='space-y-4'>
-                    <div className='flex items-center justify-between'>
-                        <div className='flex items-center space-x-2'>
-                            <Trophy className='h-5 w-5 text-hunyadi_yellow-600' />
-                            <h3 className='text-lg font-semibold text-dark_slate_gray-900'>
-                                Completed Tasks
-                            </h3>
-                            <span className='text-sm text-dark_slate_gray-500'>
-                                ({filteredFinishedTasks.length} of{" "}
-                                {state.finishedTasks.length})
-                            </span>
-                        </div>
-                        <div className='flex space-x-2'>
-                            <Button
-                                variant={
-                                    completedTasksFilter === "day"
-                                        ? "default"
-                                        : "outline"
-                                }
-                                size='sm'
-                                onClick={() => setCompletedTasksFilter("day")}>
-                                Today
-                            </Button>
-                            <Button
-                                variant={
-                                    completedTasksFilter === "week"
-                                        ? "default"
-                                        : "outline"
-                                }
-                                size='sm'
-                                onClick={() => setCompletedTasksFilter("week")}>
-                                Last Week
-                            </Button>
-                            <Button
-                                variant={
-                                    completedTasksFilter === "month"
-                                        ? "default"
-                                        : "outline"
-                                }
-                                size='sm'
-                                onClick={() =>
-                                    setCompletedTasksFilter("month")
-                                }>
-                                Last Month
-                            </Button>
-                            <Button
-                                variant={
-                                    completedTasksFilter === "all"
-                                        ? "default"
-                                        : "outline"
-                                }
-                                size='sm'
-                                onClick={() => setCompletedTasksFilter("all")}>
-                                All Tasks
-                            </Button>
-                        </div>
+            {/* Work History Section */}
+            <div className='mt-10 p-6 bg-gray-50 rounded shadow space-y-4'>
+                <div className='flex items-center gap-4 mb-2'>
+                    <h2 className='text-xl font-bold flex-1'>Work History</h2>
+                    <div className='flex items-center gap-2'>
+                        <span className='text-sm'>From:</span>
+                        <DatePicker
+                            selected={startDate}
+                            onChange={(date) => setStartDate(date)}
+                            className='border rounded px-2 py-1 text-sm'
+                            dateFormat='yyyy-MM-dd'
+                        />
+                        <span className='text-sm'>To:</span>
+                        <DatePicker
+                            selected={endDate}
+                            onChange={(date) => setEndDate(date)}
+                            className='border rounded px-2 py-1 text-sm'
+                            dateFormat='yyyy-MM-dd'
+                        />
                     </div>
-
-                    {filteredFinishedTasks.length === 0 ? (
-                        <Card className='border-dashed border-2 border-dark_slate_gray-300'>
-                            <CardContent className='flex flex-col items-center justify-center py-8'>
-                                <Trophy className='h-8 w-8 text-dark_slate_gray-400 mb-4' />
-                                <h3 className='text-lg font-medium text-dark_slate_gray-900 mb-2'>
-                                    No completed tasks in this period
-                                </h3>
-                                <p className='text-dark_slate_gray-600 text-center text-sm'>
-                                    {completedTasksFilter === "week" &&
-                                        "No tasks completed in the last week."}
-                                    {completedTasksFilter === "month" &&
-                                        "No tasks completed in the last month."}
-                                    {completedTasksFilter === "all" &&
-                                        "No tasks have been completed yet."}
-                                </p>
-                            </CardContent>
-                        </Card>
-                    ) : (
-                        <div className='grid gap-4'>
-                            {filteredFinishedTasks.map((task) => (
-                                <Card
-                                    key={task.id}
-                                    className='bg-hunyadi_yellow-100 border-hunyadi_yellow-300'>
-                                    <CardHeader>
-                                        <div className='flex items-start justify-between'>
-                                            <div className='flex-1'>
-                                                <div className='flex items-center space-x-2'>
-                                                    <CheckCircle className='h-5 w-5 text-hunyadi_yellow-600' />
-                                                    <CardTitle className='text-lg text-hunyadi_yellow-800'>
-                                                        {task.title}
-                                                    </CardTitle>
-                                                </div>
-                                                {task.description && (
-                                                    <CardDescription className='mt-1 text-hunyadi_yellow-700'>
-                                                        {task.description}
-                                                    </CardDescription>
-                                                )}
-                                                <div className='mt-2 text-sm text-hunyadi_yellow-600'>
-                                                    Completed on{" "}
-                                                    {new Date(
-                                                        task.finishedAt
-                                                    ).toLocaleDateString(
-                                                        "en-US",
-                                                        {
-                                                            month: "short",
-                                                            day: "numeric",
-                                                            year: "numeric",
-                                                            hour: "2-digit",
-                                                            minute: "2-digit",
-                                                        }
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <Button
-                                                variant='ghost'
-                                                size='sm'
-                                                onClick={() =>
-                                                    handleDeleteFinishedTask(
-                                                        task.id
-                                                    )
-                                                }
-                                                className='text-auburn-600 hover:text-auburn-700 hover:bg-auburn-100'>
-                                                <Trash2 className='h-4 w-4' />
-                                            </Button>
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent className='space-y-4'>
-                                        {/* Total Time Display */}
-                                        <div className='flex items-center justify-between p-3 bg-vanilla-900 rounded-lg border border-vanilla-400'>
-                                            <div className='flex items-center space-x-2'>
-                                                <Clock className='h-4 w-4 text-dark_slate_gray-300' />
-                                                <span className='text-sm font-medium text-dark_slate_gray-400'>
-                                                    Total Time:
-                                                </span>
-                                            </div>
-                                            <div className='text-lg font-mono font-bold text-hunyadi_yellow-700'>
-                                                {formatTime(
-                                                    task.totalTime || 0
-                                                )}
-                                            </div>
-                                        </div>
-
-                                        {/* Task Notes */}
-                                        {task.memo && (
-                                            <div className='space-y-2'>
-                                                <Label className='text-hunyadi_yellow-800'>
-                                                    Task Notes
-                                                </Label>
-                                                <div className='p-3 bg-vanilla-900 rounded-lg border border-vanilla-400 text-sm text-dark_slate_gray-400 whitespace-pre-wrap'>
-                                                    {task.memo}
-                                                </div>
-                                            </div>
-                                        )}
-                                    </CardContent>
-                                </Card>
-                            ))}
-                        </div>
-                    )}
                 </div>
-            )}
+                <div className='mb-2 text-lg font-semibold'>
+                    Total Time: {formatTime(totalHistoryTime)}
+                </div>
+                {historyLoading ? (
+                    <div>Loading work history...</div>
+                ) : workHistory.length === 0 &&
+                  Object.keys(runningTimeMap).length === 0 ? (
+                    <div>No work recorded in this period.</div>
+                ) : (
+                    <ul className='space-y-2'>
+                        {workHistory.map((w) => {
+                            const extra =
+                                w.date.startsWith(todayStr) &&
+                                runningTimeMap[w.id]
+                                    ? runningTimeMap[w.id]
+                                    : 0;
+                            return (
+                                <li
+                                    key={w.id}
+                                    className='border rounded p-3 bg-white flex flex-col md:flex-row md:items-center md:gap-4'>
+                                    <div className='flex-1'>
+                                        <div className='font-semibold'>
+                                            {w.task?.title || "Untitled Task"}
+                                        </div>
+                                        <div className='text-xs text-gray-500'>
+                                            {w.task?.description}
+                                        </div>
+                                    </div>
+                                    <div className='flex items-center gap-2 mt-2 md:mt-0'>
+                                        <span className='font-mono text-base'>
+                                            {formatTime(w.totalTime + extra)}
+                                        </span>
+                                        <span className='text-xs text-gray-500'>
+                                            {new Date(
+                                                w.date
+                                            ).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                </li>
+                            );
+                        })}
+                        {/* Show pseudo-entries for running timers with no workHistory yet */}
+                        {Object.entries(runningTimeMap)
+                            .filter(([k]) => k.startsWith("new-"))
+                            .map(([k, v]) => {
+                                const taskId = Number(k.replace("new-", ""));
+                                const task = tasks.find((t) => t.id === taskId);
+                                return (
+                                    <li
+                                        key={k}
+                                        className='border rounded p-3 bg-white flex flex-col md:flex-row md:items-center md:gap-4'>
+                                        <div className='flex-1'>
+                                            <div className='font-semibold'>
+                                                {task?.title || "Untitled Task"}
+                                            </div>
+                                            <div className='text-xs text-gray-500'>
+                                                {task?.description}
+                                            </div>
+                                        </div>
+                                        <div className='flex items-center gap-2 mt-2 md:mt-0'>
+                                            <span className='font-mono text-base'>
+                                                {formatTime(v)}
+                                            </span>
+                                            <span className='text-xs text-gray-500'>
+                                                {new Date().toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                    </li>
+                                );
+                            })}
+                    </ul>
+                )}
+            </div>
         </div>
     );
 }

@@ -1,6 +1,5 @@
 import "./globals.css";
 import { Inter } from "next/font/google";
-import { AppProvider } from "@/context/AppContext";
 
 import { ClerkProvider } from "@clerk/nextjs";
 
@@ -18,9 +17,7 @@ export default function RootLayout({ children }) {
                 <link rel='icon' href='/favicon.ico' />
             </head>
             <body className={inter.className}>
-                <ClerkProvider>
-                    <AppProvider>{children}</AppProvider>
-                </ClerkProvider>
+                <ClerkProvider>{children}</ClerkProvider>
             </body>
         </html>
     );

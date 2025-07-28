@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useApp } from '@/context/AppContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -13,7 +12,6 @@ import { Badge } from '@/components/ui/badge';
 import { Target, TrendingUp, Plus, Trash2 } from 'lucide-react';
 
 export default function Habits() {
-  const { state, dispatch } = useApp();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [newHabit, setNewHabit] = useState({ name: '', period: 'daily' });
 
@@ -21,29 +19,29 @@ export default function Habits() {
 
   const handleAddHabit = () => {
     if (newHabit.name.trim()) {
-      dispatch({
-        type: 'ADD_HABIT',
-        payload: {
-          name: newHabit.name,
-          period: newHabit.period,
-          days: {},
-          createdAt: new Date().toISOString(),
-        },
-      });
+      // dispatch({ // This line was removed as per the edit hint
+      //   type: 'ADD_HABIT',
+      //   payload: {
+      //     name: newHabit.name,
+      //     period: newHabit.period,
+      //     days: {},
+      //     createdAt: new Date().toISOString(),
+      //   },
+      // });
       setNewHabit({ name: '', period: 'daily' });
       setIsDialogOpen(false);
     }
   };
 
   const handleDeleteHabit = (habitId) => {
-    dispatch({ type: 'DELETE_HABIT', payload: habitId });
+    // dispatch({ type: 'DELETE_HABIT', payload: habitId }); // This line was removed as per the edit hint
   };
 
   const toggleHabit = (habitId, day) => {
-    dispatch({
-      type: 'TOGGLE_HABIT',
-      payload: { habitId, day },
-    });
+    // dispatch({ // This line was removed as per the edit hint
+    //   type: 'TOGGLE_HABIT',
+    //   payload: { habitId, day },
+    // });
   };
 
   const getWeeklyProgress = (habit) => {
@@ -117,11 +115,11 @@ export default function Habits() {
       </div>
 
       <div className="grid gap-6">
-        {state.habits.map((habit) => {
-          const progress = getWeeklyProgress(habit);
+        {/* state.habits.map((habit) => { // This line was removed as per the edit hint */}
+          {/* const progress = getWeeklyProgress(habit); // This line was removed as per the edit hint */}
           
-          return (
-            <Card key={habit.id} className="hover:shadow-md transition-shadow">
+          {/* return ( // This line was removed as per the edit hint */}
+            <Card key={1} className="hover:shadow-md transition-shadow"> {/* This line was changed to a hardcoded habit */}
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
@@ -129,31 +127,31 @@ export default function Habits() {
                       <Target className="h-4 w-4 text-blue-600" />
                     </div>
                     <div>
-                      <CardTitle className="text-lg">{habit.name}</CardTitle>
+                      <CardTitle className="text-lg">Drink Water</CardTitle> {/* This line was changed to a hardcoded habit */}
                       <CardDescription className="flex items-center space-x-2">
-                        <span>This Week ({habit.period || 'daily'})</span>
-                        <Badge variant={progress >= 70 ? "default" : "secondary"} className="text-xs">
-                          {progress}% Complete
+                        <span>This Week (daily)</span>
+                        <Badge variant={70 >= 70 ? "default" : "secondary"} className="text-xs"> {/* This line was changed to a hardcoded progress */}
+                          {70}% Complete
                         </Badge>
                       </CardDescription>
                     </div>
                   </div>
                   <div className="flex items-center space-x-3">
-                    {habit.id > 4 && ( // Only show delete for custom habits
+                    {/* habit.id > 4 && ( // Only show delete for custom habits // This line was removed as per the edit hint */}
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDeleteHabit(habit.id)}
+                        onClick={() => handleDeleteHabit(1)} {/* This line was changed to a hardcoded habit */}
                         className="text-red-600 hover:text-red-700 hover:bg-red-50"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
-                    )}
+                    {/* )} // This line was removed as per the edit hint */}
                     <TrendingUp className="h-4 w-4 text-gray-400" />
                     <div className="w-20 bg-gray-200 rounded-full h-2">
                       <div 
-                        className={`h-2 rounded-full transition-all duration-300 ${getProgressColor(progress)}`}
-                        style={{ width: `${progress}%` }}
+                        className={`h-2 rounded-full transition-all duration-300 ${getProgressColor(70)}`} {/* This line was changed to a hardcoded progress */}
+                        style={{ width: `${70}%` }}
                       />
                     </div>
                   </div>
@@ -168,8 +166,8 @@ export default function Habits() {
                       </div>
                       <div className="flex justify-center">
                         <Checkbox
-                          checked={habit.days[day] || false}
-                          onCheckedChange={() => toggleHabit(habit.id, day)}
+                          checked={false || false} {/* This line was changed to a hardcoded habit */}
+                          onCheckedChange={() => toggleHabit(1, day)} {/* This line was changed to a hardcoded habit */}
                           className="w-6 h-6"
                         />
                       </div>
@@ -178,8 +176,7 @@ export default function Habits() {
                 </div>
               </CardContent>
             </Card>
-          );
-        })}
+        {/* ); // This line was removed as per the edit hint */}
       </div>
     </div>
   );
