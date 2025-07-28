@@ -358,42 +358,50 @@ export default function TasksPage() {
                                     </div>
                                 )
                             )}
-                            <div className='flex items-center gap-4 mt-2'>
-                                <button
-                                    className={`px-3 py-1 rounded ${
-                                        timers[task.id]
-                                            ? "bg-red-600"
-                                            : "bg-green-600"
-                                    } text-white`}
-                                    onClick={() =>
-                                        timers[task.id]
-                                            ? handleStop(task.id)
-                                            : handleStart(task.id)
-                                    }>
-                                    {timers[task.id] ? "Stop" : "Start"}
-                                </button>
-                                <span className='font-mono'>
-                                    {timers[task.id]
-                                        ? formatTime(elapsed[task.id] || 0)
-                                        : formatTime(0)}
-                                </span>
-                                <span className='text-xs text-gray-500'>
-                                    {timers[task.id]
-                                        ? "Timer running"
-                                        : "Today"}
-                                </span>
-                                <button
-                                    className='px-2 py-1 rounded bg-green-100 text-green-700 hover:bg-green-200'
-                                    onClick={() => handleCompleteTask(task.id)}
-                                    title='Mark as Complete'>
-                                    Complete
-                                </button>
-                                <button
-                                    className='ml-auto px-2 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200'
-                                    onClick={() => handleDeleteTask(task.id)}
-                                    title='Delete Task'>
-                                    Delete
-                                </button>
+                            <div className='flex items-center gap-4 mt-2 justify-between'>
+                                <div className='flex items-center gap-2'>
+                                    <button
+                                        className={`px-3 py-1 rounded ${
+                                            timers[task.id]
+                                                ? "bg-red-600"
+                                                : "bg-green-600"
+                                        } text-white`}
+                                        onClick={() =>
+                                            timers[task.id]
+                                                ? handleStop(task.id)
+                                                : handleStart(task.id)
+                                        }>
+                                        {timers[task.id] ? "Stop" : "Start"}
+                                    </button>
+                                    <span className='font-mono'>
+                                        {timers[task.id]
+                                            ? formatTime(elapsed[task.id] || 0)
+                                            : formatTime(0)}
+                                    </span>
+                                    <span className='text-xs text-gray-500'>
+                                        {timers[task.id]
+                                            ? "Timer running"
+                                            : "Today"}
+                                    </span>
+                                </div>
+                                <div className='flex items-center gap-2'>
+                                    <button
+                                        className='px-2 py-1 rounded bg-green-100 text-green-700 hover:bg-green-200'
+                                        onClick={() =>
+                                            handleCompleteTask(task.id)
+                                        }
+                                        title='Mark as Complete'>
+                                        Finish
+                                    </button>
+                                    <button
+                                        className='ml-auto px-2 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200'
+                                        onClick={() =>
+                                            handleDeleteTask(task.id)
+                                        }
+                                        title='Delete Task'>
+                                        Delete
+                                    </button>
+                                </div>
                             </div>
                         </li>
                     ))}
