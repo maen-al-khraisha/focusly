@@ -2,8 +2,73 @@
 
 import { useState, useEffect } from "react";
 import axios from "axios";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
+import { getStatusColors, getStatusText } from "../../../lib/utils.js";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import {
+    Play,
+    Pause,
+    Check,
+    Trash2,
+    RotateCcw,
+    ChevronDown,
+    ChevronRight,
+    Target,
+    Clock,
+    Edit,
+    Plus,
+    FolderOpen,
+    Settings,
+    Heart,
+    Dumbbell,
+    BookOpen,
+    Coffee,
+    Brain,
+    Music,
+    Camera,
+    Palette,
+    Code,
+    Globe,
+    Home,
+    Car,
+    Plane,
+    Gamepad2,
+    Utensils,
+    ShoppingBag,
+    Gift,
+    Star,
+    Zap,
+    Moon,
+    Sun,
+    Cloud,
+    Leaf,
+} from "lucide-react";
 
 function formatTime(seconds) {
     const h = Math.floor(seconds / 3600);
@@ -17,277 +82,196 @@ function formatTime(seconds) {
 }
 
 export default function TasksPage() {
-    const [activeTab, setActiveTab] = useState("active"); // "active" or "history"
+    const [activeTab, setActiveTab] = useState("active");
     const [tasks, setTasks] = useState([]);
+    const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [newTask, setNewTask] = useState({ title: "", description: "" });
-    const [adding, setAdding] = useState(false);
-    const [timers, setTimers] = useState({});
-    const [elapsed, setElapsed] = useState({});
-    const [todayWork, setTodayWork] = useState({});
-    // Work history state
-    const [startDate, setStartDate] = useState(() => {
-        const d = new Date();
-        d.setDate(d.getDate() - 7);
-        return d;
+    const [newTask, setNewTask] = useState({
+        title: "",
+        description: "",
+        icon: "Target",
+        categoryId: null,
     });
-    const [endDate, setEndDate] = useState(() => new Date());
-    const [workHistory, setWorkHistory] = useState([]);
-    const [historyLoading, setHistoryLoading] = useState(false);
-    const [editingTitleId, setEditingTitleId] = useState(null);
-    const [editingDescId, setEditingDescId] = useState(null);
-    const [editTitle, setEditTitle] = useState("");
-    const [editDesc, setEditDesc] = useState("");
+    const [adding, setAdding] = useState(false);
+    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
 
-    useEffect(() => {
-        fetchTasks();
-        fetchTodayWork();
-    }, []);
+    // Category management state
+    const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+    const [isEditCategoryDialogOpen, setIsEditCategoryDialogOpen] =
+        useState(false);
+    const [editingCategory, setEditingCategory] = useState(null);
+    const [newCategory, setNewCategory] = useState({
+        name: "",
+        icon: "FolderOpen",
+    });
+    const [collapsedCategories, setCollapsedCategories] = useState({});
 
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setElapsed((prev) => {
-                const updated = { ...prev };
-                Object.keys(timers).forEach((taskId) => {
-                    updated[taskId] = Math.floor(
-                        (Date.now() - timers[taskId]) / 1000
-                    );
-                });
-                return updated;
-            });
-        }, 1000);
-        return () => clearInterval(interval);
-    }, [timers]);
-
-    useEffect(() => {
-        fetchWorkHistory();
-    }, [startDate, endDate]);
+    // Icon map for category selection
+    const iconMap = {
+        FolderOpen,
+        Target,
+        Clock,
+        Edit,
+        Plus,
+        Heart,
+        Dumbbell,
+        BookOpen,
+        Coffee,
+        Brain,
+        Music,
+        Camera,
+        Palette,
+        Code,
+        Globe,
+        Home,
+        Car,
+        Plane,
+        Gamepad2,
+        Utensils,
+        ShoppingBag,
+        Gift,
+        Star,
+        Zap,
+        Moon,
+        Sun,
+        Cloud,
+        Leaf,
+        Settings,
+    };
 
     const fetchTasks = async () => {
         setLoading(true);
         try {
-            const res = await axios.get("/api/tasks");
-            setTasks(res.data);
+            const [tasksRes, categoriesRes] = await Promise.all([
+                axios.get("/api/tasks"),
+                axios.get("/api/task-categories"),
+            ]);
+            setTasks(tasksRes.data);
+            setCategories(categoriesRes.data);
         } catch (err) {
             setError("Failed to load tasks");
         }
         setLoading(false);
     };
 
-    const fetchTodayWork = async () => {
-        const today = new Date().toISOString().split("T")[0];
-        try {
-            const res = await axios.get(
-                `/api/daily-work?startDate=${today}&endDate=${today}`
-            );
-            const map = {};
-            res.data.forEach((dw) => {
-                map[dw.taskId] = dw.totalTime;
-            });
-            setTodayWork(map);
-        } catch {}
-    };
-
-    const fetchWorkHistory = async () => {
-        setHistoryLoading(true);
-        try {
-            const params = new URLSearchParams({
-                startDate: startDate.toISOString().split("T")[0],
-                endDate: endDate.toISOString().split("T")[0],
-            });
-            const res = await axios.get(`/api/work-history?${params}`);
-            setWorkHistory(res.data);
-        } catch {
-            setWorkHistory([]);
-        }
-        setHistoryLoading(false);
-    };
-
     const handleAddTask = async (e) => {
         e.preventDefault();
         if (!newTask.title.trim()) return;
+
         setAdding(true);
         try {
-            const res = await axios.post("/api/tasks", newTask);
-            setTasks([res.data, ...tasks]);
-            setNewTask({ title: "", description: "" });
-        } catch (err) {
-            setError("Failed to add task");
+            const response = await axios.post("/api/tasks", {
+                title: newTask.title,
+                description: newTask.description,
+                icon: newTask.icon,
+                categoryId: newTask.categoryId,
+            });
+            setTasks([response.data, ...tasks]);
+            setNewTask({
+                title: "",
+                description: "",
+                icon: "Target",
+                categoryId: null,
+            });
+            setIsAddDialogOpen(false);
+        } catch (error) {
+            console.error("Error adding task:", error);
+        } finally {
+            setAdding(false);
         }
-        setAdding(false);
     };
 
-    const handleStart = async (taskId) => {
-        // Update task status to in_progress when starting timer
+    // Category management functions
+    const handleAddCategory = async () => {
+        if (newCategory.name.trim()) {
+            try {
+                const response = await axios.post(
+                    "/api/task-categories",
+                    newCategory
+                );
+                setCategories([...categories, response.data]);
+                setNewCategory({ name: "", icon: "FolderOpen" });
+            } catch (error) {
+                console.error("Error creating category:", error);
+            }
+        }
+    };
+
+    const handleEditCategory = (category) => {
+        setEditingCategory(category);
+        setIsEditCategoryDialogOpen(true);
+    };
+
+    const handleUpdateCategory = async () => {
+        if (editingCategory?.name?.trim()) {
+            try {
+                const response = await axios.put(
+                    `/api/task-categories/${editingCategory.id}`,
+                    {
+                        name: editingCategory.name,
+                        icon: editingCategory.icon,
+                    }
+                );
+                setCategories(
+                    categories.map((cat) =>
+                        cat.id === editingCategory.id ? response.data : cat
+                    )
+                );
+                setEditingCategory(null);
+                setIsEditCategoryDialogOpen(false);
+            } catch (error) {
+                console.error("Error updating category:", error);
+            }
+        }
+    };
+
+    const handleDeleteCategory = async (categoryId) => {
         try {
-            await axios.put(`/api/tasks/${taskId}`, {
-                status: "in_progress",
-            });
-            setTasks((tasks) =>
-                tasks.map((t) =>
-                    t.id === taskId ? { ...t, status: "in_progress" } : t
+            await axios.delete(`/api/task-categories/${categoryId}`);
+            setCategories(categories.filter((cat) => cat.id !== categoryId));
+            setTasks(
+                tasks.map((task) =>
+                    task.categoryId === categoryId
+                        ? { ...task, categoryId: null, category: null }
+                        : task
                 )
             );
-        } catch (err) {
-            setError("Failed to update task status");
-        }
-
-        setTimers((prev) => ({ ...prev, [taskId]: Date.now() }));
-        setElapsed((prev) => ({ ...prev, [taskId]: 0 }));
-    };
-
-    const handleStop = async (taskId) => {
-        const seconds = elapsed[taskId] || 0;
-        if (seconds > 0) {
-            const today = new Date().toISOString().split("T")[0];
-            await axios.post("/api/daily-work", {
-                taskId,
-                date: today,
-                totalTime: seconds,
-            });
-            fetchTodayWork();
-            fetchWorkHistory();
-        }
-        setTimers((prev) => {
-            const updated = { ...prev };
-            delete updated[taskId];
-            return updated;
-        });
-        setElapsed((prev) => {
-            const updated = { ...prev };
-            updated[taskId] = 0;
-            return updated;
-        });
-    };
-
-    const handleDeleteTask = async (taskId) => {
-        if (!window.confirm("Are you sure you want to delete this task?"))
-            return;
-        try {
-            await axios.delete(`/api/tasks/${taskId}`);
-            setTasks((tasks) => tasks.filter((t) => t.id !== taskId));
-            fetchWorkHistory();
-        } catch (err) {
-            setError("Failed to delete task");
+        } catch (error) {
+            console.error("Error deleting category:", error);
         }
     };
 
-    const handleEditTitleClick = (task) => {
-        setEditingTitleId(task.id);
-        setEditTitle(task.title);
-    };
-    const handleEditDescClick = (task) => {
-        setEditingDescId(task.id);
-        setEditDesc(task.description || "");
-    };
-    const handleEditTitleSave = async (taskId) => {
-        try {
-            const res = await axios.put(`/api/tasks/${taskId}`, {
-                title: editTitle,
-            });
-            setTasks((tasks) =>
-                tasks.map((t) => (t.id === taskId ? res.data : t))
-            );
-            fetchWorkHistory();
-        } catch (err) {
-            setError("Failed to update task");
-        }
-        setEditingTitleId(null);
-    };
-    const handleEditDescSave = async (taskId) => {
-        try {
-            const res = await axios.put(`/api/tasks/${taskId}`, {
-                description: editDesc,
-            });
-            setTasks((tasks) =>
-                tasks.map((t) => (t.id === taskId ? res.data : t))
-            );
-            fetchWorkHistory();
-        } catch (err) {
-            setError("Failed to update task");
-        }
-        setEditingDescId(null);
-    };
-    const handleEditTitleKeyDown = (e, taskId) => {
-        if (e.key === "Enter") {
-            e.preventDefault();
-            handleEditTitleSave(taskId);
-        } else if (e.key === "Escape") {
-            setEditingTitleId(null);
-        }
-    };
-    const handleEditDescKeyDown = (e, taskId) => {
-        if (e.key === "Enter") {
-            e.preventDefault();
-            handleEditDescSave(taskId);
-        } else if (e.key === "Escape") {
-            setEditingDescId(null);
-        }
+    const toggleCategory = (categoryName) => {
+        setCollapsedCategories((prev) => ({
+            ...prev,
+            [categoryName]: !prev[categoryName],
+        }));
     };
 
-    // Show active tasks (not_started and in_progress)
-    const activeTasks = tasks.filter((t) => t.status !== "completed");
-
-    // Add complete/reopen handlers
-    const handleCompleteTask = async (taskId) => {
-        try {
-            const res = await axios.put(`/api/tasks/${taskId}`, {
-                status: "completed",
-            });
-            setTasks((tasks) =>
-                tasks.map((t) => (t.id === taskId ? res.data : t))
-            );
-            fetchWorkHistory();
-        } catch (err) {
-            setError("Failed to complete task");
-        }
-    };
-    const handleReopenTask = async (taskId) => {
-        try {
-            const res = await axios.put(`/api/tasks/${taskId}`, {
-                status: "not_started",
-            });
-            setTasks((tasks) =>
-                tasks.map((t) => (t.id === taskId ? res.data : t))
-            );
-            fetchWorkHistory();
-        } catch (err) {
-            setError("Failed to reopen task");
-        }
-    };
-
-    // Calculate total time in history, including running timers for today
-    const todayStr = new Date().toISOString().split("T")[0];
-    const runningTimeMap = {};
-    Object.entries(timers).forEach(([taskId, start]) => {
-        // Find if this task has a workHistory entry for today
-        const wh = workHistory.find(
-            (w) => w.taskId === Number(taskId) && w.date.startsWith(todayStr)
-        );
-        const elapsedSec = elapsed[taskId] || 0;
-        if (wh) {
-            runningTimeMap[wh.id] = elapsedSec;
-        } else {
-            // If no entry, add a pseudo-entry for today
-            runningTimeMap[`new-${taskId}`] = elapsedSec;
-        }
-    });
-    const totalHistoryTime =
-        workHistory.reduce((sum, w) => {
-            let extra = 0;
-            if (w.date.startsWith(todayStr) && runningTimeMap[w.id]) {
-                extra = runningTimeMap[w.id];
+    const groupTasksByCategory = () => {
+        const grouped = {};
+        tasks.forEach((task) => {
+            const categoryName = task.category?.name || "Uncategorized";
+            if (!grouped[categoryName]) {
+                grouped[categoryName] = [];
             }
-            return sum + w.totalTime + extra;
-        }, 0) +
-        Object.entries(runningTimeMap)
-            .filter(([k]) => k.startsWith("new-"))
-            .reduce((sum, [k, v]) => sum + v, 0);
+            grouped[categoryName].push(task);
+        });
+        return grouped;
+    };
+
+    const activeTasks = tasks.filter((task) => task.status !== "completed");
+
+    useEffect(() => {
+        fetchTasks();
+    }, []);
 
     return (
-        <div className='max-w-2xl mx-auto p-6 space-y-8'>
-            <h1 className='text-2xl font-bold mb-4'>Tasks</h1>
+        <div className='p-6 space-y-8'>
+            <div className='flex justify-between items-center mb-4'>
+                <h1 className='text-2xl font-bold'>Tasks</h1>
+            </div>
 
             {/* Tab Navigation */}
             <div className='flex border-b border-gray-200'>
@@ -300,312 +284,561 @@ export default function TasksPage() {
                     }`}>
                     Active Tasks
                 </button>
-                <button
-                    onClick={() => setActiveTab("history")}
-                    className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
-                        activeTab === "history"
-                            ? "border-[#335c67] text-[#335c67]"
-                            : "border-transparent text-gray-500 hover:text-gray-700"
-                    }`}>
-                    Work History
-                </button>
             </div>
 
             {/* Active Tasks Tab */}
             {activeTab === "active" && (
                 <div className='space-y-6'>
-                    <form
-                        onSubmit={handleAddTask}
-                        className='flex flex-col gap-2 mb-6'>
-                        <input
-                            className='border rounded px-3 py-2'
-                            placeholder='Task title'
-                            value={newTask.title}
-                            onChange={(e) =>
-                                setNewTask({
-                                    ...newTask,
-                                    title: e.target.value,
-                                })
-                            }
-                            required
-                        />
-                        <textarea
-                            className='border rounded px-3 py-2'
-                            placeholder='Description (optional)'
-                            value={newTask.description}
-                            onChange={(e) =>
-                                setNewTask({
-                                    ...newTask,
-                                    description: e.target.value,
-                                })
-                            }
-                        />
-                        <button
-                            type='submit'
-                            className='bg-[#335c67] text-[#fff3b0] flex items-center gap-2 px-5 py-2 rounded-lg font-semibold shadow hover:bg-[#284952] disabled:opacity-50'
-                            disabled={adding}>
-                            <span className='text-xl font-bold'>+</span>
-                            Add Task
-                        </button>
-                    </form>
+                    <div className='flex justify-between items-center mb-6'>
+                        <h2 className='text-xl font-semibold'>Active Tasks</h2>
+                        <div className='flex items-center gap-3'>
+                            <Dialog
+                                open={isCategoryDialogOpen}
+                                onOpenChange={setIsCategoryDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <Button variant='outline'>
+                                        <Settings className='mr-2 h-4 w-4' />
+                                        Manage Categories
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent className='max-w-4xl'>
+                                    <DialogHeader>
+                                        <DialogTitle>
+                                            Manage Categories
+                                        </DialogTitle>
+                                        <DialogDescription>
+                                            Create, edit, and delete categories
+                                            to organize your tasks.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className='space-y-6'>
+                                        {/* Add New Category Section */}
+                                        <div className='space-y-4'>
+                                            <h3 className='text-lg font-semibold'>
+                                                Add New Category
+                                            </h3>
+                                            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                                                <div className='space-y-2'>
+                                                    <Label htmlFor='new-category-name'>
+                                                        Category Name
+                                                    </Label>
+                                                    <Input
+                                                        id='new-category-name'
+                                                        placeholder='Enter category name'
+                                                        value={newCategory.name}
+                                                        onChange={(e) =>
+                                                            setNewCategory({
+                                                                ...newCategory,
+                                                                name: e.target
+                                                                    .value,
+                                                            })
+                                                        }
+                                                    />
+                                                </div>
+                                                <div className='space-y-2'>
+                                                    <Label>Category Icon</Label>
+                                                    <div className='grid grid-cols-8 gap-2 max-h-40 overflow-y-auto border rounded-lg p-3'>
+                                                        {Object.entries(
+                                                            iconMap
+                                                        ).map(
+                                                            ([
+                                                                iconName,
+                                                                IconComponent,
+                                                            ]) => (
+                                                                <button
+                                                                    key={
+                                                                        iconName
+                                                                    }
+                                                                    onClick={() =>
+                                                                        setNewCategory(
+                                                                            {
+                                                                                ...newCategory,
+                                                                                icon: iconName,
+                                                                            }
+                                                                        )
+                                                                    }
+                                                                    className={`p-2 rounded-lg border-2 transition-colors ${
+                                                                        newCategory.icon ===
+                                                                        iconName
+                                                                            ? "border-blue-500 bg-blue-50"
+                                                                            : "border-gray-200 hover:border-gray-300"
+                                                                    }`}>
+                                                                    <IconComponent className='h-4 w-4' />
+                                                                </button>
+                                                            )
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <Button
+                                                onClick={handleAddCategory}
+                                                disabled={
+                                                    !newCategory.name.trim()
+                                                }
+                                                className='w-full md:w-auto'>
+                                                <Plus className='mr-2 h-4 w-4' />
+                                                Add Category
+                                            </Button>
+                                        </div>
+
+                                        {/* Existing Categories Section */}
+                                        <div className='space-y-4'>
+                                            <h3 className='text-lg font-semibold'>
+                                                Existing Categories
+                                            </h3>
+                                            {categories.length === 0 ? (
+                                                <div className='text-center py-8 text-gray-500'>
+                                                    <FolderOpen className='mx-auto h-12 w-12 text-gray-300 mb-2' />
+                                                    <p>No categories yet</p>
+                                                    <p className='text-sm'>
+                                                        Create your first
+                                                        category above
+                                                    </p>
+                                                </div>
+                                            ) : (
+                                                <div className='grid gap-3'>
+                                                    {categories.map(
+                                                        (category) => {
+                                                            const CategoryIcon =
+                                                                iconMap[
+                                                                    category
+                                                                        .icon
+                                                                ] || FolderOpen;
+                                                            return (
+                                                                <div
+                                                                    key={
+                                                                        category.id
+                                                                    }
+                                                                    className='flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors'>
+                                                                    <div className='flex items-center space-x-3'>
+                                                                        <div className='w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center'>
+                                                                            <CategoryIcon className='h-4 w-4 text-blue-600' />
+                                                                        </div>
+                                                                        <div>
+                                                                            <h4 className='font-medium'>
+                                                                                {
+                                                                                    category.name
+                                                                                }
+                                                                            </h4>
+                                                                            <p className='text-sm text-gray-500'>
+                                                                                {
+                                                                                    tasks.filter(
+                                                                                        (
+                                                                                            task
+                                                                                        ) =>
+                                                                                            task.categoryId ===
+                                                                                            category.id
+                                                                                    )
+                                                                                        .length
+                                                                                }{" "}
+                                                                                tasks
+                                                                            </p>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className='flex items-center space-x-2'>
+                                                                        <Button
+                                                                            variant='ghost'
+                                                                            size='sm'
+                                                                            onClick={() =>
+                                                                                handleEditCategory(
+                                                                                    category
+                                                                                )
+                                                                            }
+                                                                            className='h-8 w-8 p-0'
+                                                                            title='Edit Category'>
+                                                                            <Edit className='h-4 w-4' />
+                                                                        </Button>
+                                                                        <Button
+                                                                            variant='ghost'
+                                                                            size='sm'
+                                                                            onClick={() =>
+                                                                                handleDeleteCategory(
+                                                                                    category.id
+                                                                                )
+                                                                            }
+                                                                            className='h-8 w-8 p-0 text-red-600 hover:text-red-700'
+                                                                            title='Delete Category'>
+                                                                            <Trash2 className='h-4 w-4' />
+                                                                        </Button>
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        }
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <DialogFooter>
+                                        <Button
+                                            variant='outline'
+                                            onClick={() => {
+                                                setIsCategoryDialogOpen(false);
+                                                setNewCategory({
+                                                    name: "",
+                                                    icon: "FolderOpen",
+                                                });
+                                            }}>
+                                            Close
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                            <Dialog
+                                open={isAddDialogOpen}
+                                onOpenChange={setIsAddDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <Button
+                                        className='bg-[#335c67] text-[#fff3b0] hover:bg-[#284952] flex items-center gap-2'
+                                        onClick={() =>
+                                            setIsAddDialogOpen(true)
+                                        }>
+                                        <span className='text-xl font-bold'>
+                                            +
+                                        </span>
+                                        Add Task
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Add New Task</DialogTitle>
+                                        <DialogDescription>
+                                            Create a new task to track your
+                                            work.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <div className='space-y-4'>
+                                        <div className='space-y-2'>
+                                            <label
+                                                htmlFor='title'
+                                                className='text-sm font-medium'>
+                                                Task Title *
+                                            </label>
+                                            <Input
+                                                id='title'
+                                                placeholder='Enter task title'
+                                                value={newTask.title}
+                                                onChange={(e) =>
+                                                    setNewTask({
+                                                        ...newTask,
+                                                        title: e.target.value,
+                                                    })
+                                                }
+                                                required
+                                            />
+                                        </div>
+                                        <div className='space-y-2'>
+                                            <label
+                                                htmlFor='description'
+                                                className='text-sm font-medium'>
+                                                Description (optional)
+                                            </label>
+                                            <Textarea
+                                                id='description'
+                                                placeholder='Enter task description'
+                                                value={newTask.description}
+                                                onChange={(e) =>
+                                                    setNewTask({
+                                                        ...newTask,
+                                                        description:
+                                                            e.target.value,
+                                                    })
+                                                }
+                                            />
+                                        </div>
+                                        <div className='space-y-2'>
+                                            <label
+                                                htmlFor='category'
+                                                className='text-sm font-medium'>
+                                                Category (optional)
+                                            </label>
+                                            <Select
+                                                value={
+                                                    newTask.categoryId?.toString() ||
+                                                    ""
+                                                }
+                                                onValueChange={(value) =>
+                                                    setNewTask({
+                                                        ...newTask,
+                                                        categoryId: value
+                                                            ? parseInt(value)
+                                                            : null,
+                                                    })
+                                                }>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder='Select a category' />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value=''>
+                                                        No Category
+                                                    </SelectItem>
+                                                    {categories.map(
+                                                        (category) => (
+                                                            <SelectItem
+                                                                key={
+                                                                    category.id
+                                                                }
+                                                                value={category.id.toString()}>
+                                                                <div className='flex items-center space-x-2'>
+                                                                    {(() => {
+                                                                        const IconComponent =
+                                                                            iconMap[
+                                                                                category
+                                                                                    .icon
+                                                                            ];
+                                                                        return IconComponent ? (
+                                                                            <IconComponent className='h-4 w-4' />
+                                                                        ) : null;
+                                                                    })()}
+                                                                    <span>
+                                                                        {
+                                                                            category.name
+                                                                        }
+                                                                    </span>
+                                                                </div>
+                                                            </SelectItem>
+                                                        )
+                                                    )}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                        <DialogFooter>
+                                            <Button
+                                                type='button'
+                                                variant='outline'
+                                                onClick={() =>
+                                                    setIsAddDialogOpen(false)
+                                                }>
+                                                Cancel
+                                            </Button>
+                                            <Button
+                                                type='button'
+                                                onClick={() => {
+                                                    if (newTask.title.trim()) {
+                                                        handleAddTask({
+                                                            preventDefault:
+                                                                () => {},
+                                                        });
+                                                    }
+                                                }}
+                                                disabled={!newTask.title.trim()}
+                                                className='bg-[#335c67] text-[#fff3b0] hover:bg-[#284952]'>
+                                                Add Task
+                                            </Button>
+                                        </DialogFooter>
+                                    </div>
+                                </DialogContent>
+                            </Dialog>
+                        </div>
+                    </div>
                     {loading ? (
                         <div>Loading tasks...</div>
                     ) : error ? (
                         <div className='text-red-600'>{error}</div>
                     ) : activeTasks.length === 0 ? (
-                        <div>No tasks yet. Add your first task above!</div>
+                        <div className='text-center py-8 text-gray-500'>
+                            <p className='text-lg mb-2'>No active tasks yet.</p>
+                            <p>
+                                Click the "Add Task" button to create your first
+                                task!
+                            </p>
+                        </div>
                     ) : (
-                        <ul className='space-y-4'>
-                            {activeTasks.map((task) => (
-                                <li
-                                    key={task.id}
-                                    className='border rounded p-4 bg-white shadow flex flex-col gap-2'>
-                                    {editingTitleId === task.id ? (
-                                        <input
-                                            name='title'
-                                            className='border-b font-semibold text-lg w-full mb-1'
-                                            value={editTitle}
-                                            onChange={(e) =>
-                                                setEditTitle(e.target.value)
-                                            }
-                                            onBlur={() =>
-                                                handleEditTitleSave(task.id)
-                                            }
-                                            onKeyDown={(e) =>
-                                                handleEditTitleKeyDown(
-                                                    e,
-                                                    task.id
-                                                )
-                                            }
-                                            autoFocus
-                                        />
-                                    ) : (
-                                        <div
-                                            className='font-semibold text-lg cursor-pointer hover:underline'
-                                            onClick={() =>
-                                                handleEditTitleClick(task)
-                                            }
-                                            title='Click to edit'>
-                                            {task.title}
-                                        </div>
-                                    )}
-                                    {editingDescId === task.id ? (
-                                        <textarea
-                                            name='description'
-                                            className='border rounded w-full text-gray-600 mb-2'
-                                            value={editDesc}
-                                            onChange={(e) =>
-                                                setEditDesc(e.target.value)
-                                            }
-                                            onBlur={() =>
-                                                handleEditDescSave(task.id)
-                                            }
-                                            onKeyDown={(e) =>
-                                                handleEditDescKeyDown(
-                                                    e,
-                                                    task.id
-                                                )
-                                            }
-                                            autoFocus
-                                        />
-                                    ) : (
-                                        task.description && (
-                                            <div
-                                                className='text-gray-600 cursor-pointer hover:underline'
+                        <div className='space-y-6'>
+                            {Object.entries(groupTasksByCategory()).map(
+                                ([categoryName, categoryTasks]) => (
+                                    <div
+                                        key={categoryName}
+                                        className='space-y-4'>
+                                        <div className='flex items-center justify-between'>
+                                            <button
                                                 onClick={() =>
-                                                    handleEditDescClick(task)
+                                                    toggleCategory(categoryName)
                                                 }
-                                                title='Click to edit'>
-                                                {task.description}
+                                                className='flex items-center gap-2 text-lg font-semibold text-gray-900 hover:text-gray-700 transition-colors'>
+                                                {collapsedCategories[
+                                                    categoryName
+                                                ] ? (
+                                                    <ChevronRight className='h-5 w-5' />
+                                                ) : (
+                                                    <ChevronDown className='h-5 w-5' />
+                                                )}
+                                                {categoryName !==
+                                                    "Uncategorized" &&
+                                                    categories.find(
+                                                        (cat) =>
+                                                            cat.name ===
+                                                            categoryName
+                                                    ) &&
+                                                    (() => {
+                                                        const CategoryIcon =
+                                                            iconMap[
+                                                                categories.find(
+                                                                    (cat) =>
+                                                                        cat.name ===
+                                                                        categoryName
+                                                                )?.icon
+                                                            ] || FolderOpen;
+                                                        return (
+                                                            <CategoryIcon className='h-5 w-5 text-blue-600' />
+                                                        );
+                                                    })()}
+                                                {categoryName}
+                                                <Badge
+                                                    variant='secondary'
+                                                    className='ml-2'>
+                                                    {categoryTasks.length} tasks
+                                                </Badge>
+                                            </button>
+                                        </div>
+                                        {!collapsedCategories[categoryName] && (
+                                            <div className='space-y-4'>
+                                                {categoryTasks.map((task) => (
+                                                    <Card
+                                                        key={task.id}
+                                                        className='hover:shadow-md transition-shadow'>
+                                                        <CardHeader>
+                                                            <div className='flex items-center justify-between'>
+                                                                <div className='flex items-center space-x-3'>
+                                                                    <div className='w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center'>
+                                                                        {(() => {
+                                                                            const iconMap =
+                                                                                {
+                                                                                    Target,
+                                                                                    Clock,
+                                                                                    Edit,
+                                                                                    Check,
+                                                                                    Play,
+                                                                                    Pause,
+                                                                                    Trash2,
+                                                                                    RotateCcw,
+                                                                                };
+                                                                            const TaskIcon =
+                                                                                iconMap[
+                                                                                    task
+                                                                                        .icon
+                                                                                ] ||
+                                                                                Target;
+                                                                            return (
+                                                                                <TaskIcon className='h-4 w-4 text-blue-600' />
+                                                                            );
+                                                                        })()}
+                                                                    </div>
+                                                                    <div>
+                                                                        <CardTitle className='text-lg'>
+                                                                            {
+                                                                                task.title
+                                                                            }
+                                                                        </CardTitle>
+                                                                        <CardDescription className='flex items-center space-x-2'>
+                                                                            <span>
+                                                                                Active
+                                                                                Task
+                                                                            </span>
+                                                                            <Badge
+                                                                                variant='secondary'
+                                                                                className='text-xs'>
+                                                                                {getStatusText(
+                                                                                    task.status
+                                                                                )}
+                                                                            </Badge>
+                                                                        </CardDescription>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </CardHeader>
+                                                        {task.description && (
+                                                            <CardContent>
+                                                                <div className='text-gray-600'>
+                                                                    {
+                                                                        task.description
+                                                                    }
+                                                                </div>
+                                                            </CardContent>
+                                                        )}
+                                                    </Card>
+                                                ))}
                                             </div>
-                                        )
-                                    )}
-                                    <div className='flex items-center gap-4 mt-2 justify-between'>
-                                        <div className='flex items-center gap-2'>
-                                            <button
-                                                className={`px-3 py-1 rounded ${
-                                                    timers[task.id]
-                                                        ? "bg-red-600"
-                                                        : "bg-green-600"
-                                                } text-white`}
-                                                onClick={() =>
-                                                    timers[task.id]
-                                                        ? handleStop(task.id)
-                                                        : handleStart(task.id)
-                                                }>
-                                                {timers[task.id]
-                                                    ? "Stop"
-                                                    : "Start"}
-                                            </button>
-                                            <span className='font-mono'>
-                                                {timers[task.id]
-                                                    ? formatTime(
-                                                          elapsed[task.id] || 0
-                                                      )
-                                                    : formatTime(0)}
-                                            </span>
-                                            <span className='text-xs text-gray-500'>
-                                                {timers[task.id]
-                                                    ? "Timer running"
-                                                    : task.status ===
-                                                      "in_progress"
-                                                    ? "In progress"
-                                                    : "Not started"}
-                                            </span>
-                                        </div>
-                                        <div className='flex items-center gap-2'>
-                                            <button
-                                                className='px-2 py-1 rounded bg-green-100 text-green-700 hover:bg-green-200'
-                                                onClick={() =>
-                                                    handleCompleteTask(task.id)
-                                                }
-                                                title='Mark as Complete'>
-                                                Finish
-                                            </button>
-                                            <button
-                                                className='ml-auto px-2 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200'
-                                                onClick={() =>
-                                                    handleDeleteTask(task.id)
-                                                }
-                                                title='Delete Task'>
-                                                Delete
-                                            </button>
-                                        </div>
+                                        )}
                                     </div>
-                                </li>
-                            ))}
-                        </ul>
+                                )
+                            )}
+                        </div>
                     )}
                 </div>
             )}
 
-            {/* Work History Tab */}
-            {activeTab === "history" && (
-                <div className='space-y-6'>
-                    <div className='flex flex-col gap-4 mb-2'>
-                        <h2 className='text-xl font-bold flex-1'>
-                            Work History
-                        </h2>
-                        <div className='flex items-center gap-2'>
-                            <span className='text-sm'>From:</span>
-                            <DatePicker
-                                selected={startDate}
-                                onChange={(date) => setStartDate(date)}
-                                className='border rounded px-2 py-1 text-sm'
-                                dateFormat='yyyy-MM-dd'
-                            />
-                            <span className='text-sm'>To:</span>
-                            <DatePicker
-                                selected={endDate}
-                                onChange={(date) => setEndDate(date)}
-                                className='border rounded px-2 py-1 text-sm'
-                                dateFormat='yyyy-MM-dd'
+            {/* Edit Category Dialog */}
+            <Dialog
+                open={isEditCategoryDialogOpen}
+                onOpenChange={setIsEditCategoryDialogOpen}>
+                <DialogContent className='max-w-md'>
+                    <DialogHeader>
+                        <DialogTitle>Edit Category</DialogTitle>
+                        <DialogDescription>
+                            Update the category name and icon.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className='space-y-4'>
+                        <div className='space-y-2'>
+                            <Label htmlFor='edit-category-name'>
+                                Category Name
+                            </Label>
+                            <Input
+                                id='edit-category-name'
+                                value={editingCategory?.name || ""}
+                                onChange={(e) =>
+                                    setEditingCategory({
+                                        ...editingCategory,
+                                        name: e.target.value,
+                                    })
+                                }
+                                placeholder='Enter category name'
                             />
                         </div>
+                        <div className='space-y-2'>
+                            <Label>Category Icon</Label>
+                            <div className='grid grid-cols-8 gap-2 max-h-40 overflow-y-auto border rounded-lg p-3'>
+                                {Object.entries(iconMap).map(
+                                    ([iconName, IconComponent]) => (
+                                        <button
+                                            key={iconName}
+                                            onClick={() =>
+                                                setEditingCategory({
+                                                    ...editingCategory,
+                                                    icon: iconName,
+                                                })
+                                            }
+                                            className={`p-2 rounded-lg border-2 transition-colors ${
+                                                editingCategory?.icon ===
+                                                iconName
+                                                    ? "border-blue-500 bg-blue-50"
+                                                    : "border-gray-200 hover:border-gray-300"
+                                            }`}>
+                                            <IconComponent className='h-4 w-4' />
+                                        </button>
+                                    )
+                                )}
+                            </div>
+                        </div>
                     </div>
-                    <div className='mb-2 text-lg font-semibold'>
-                        Total Time: {formatTime(totalHistoryTime)}
-                    </div>
-                    {historyLoading ? (
-                        <div>Loading work history...</div>
-                    ) : workHistory.length === 0 &&
-                      Object.keys(runningTimeMap).length === 0 ? (
-                        <div>No work recorded in this period.</div>
-                    ) : (
-                        <ul className='space-y-2'>
-                            {workHistory.map((w) => {
-                                const extra =
-                                    w.date.startsWith(todayStr) &&
-                                    runningTimeMap[w.id]
-                                        ? runningTimeMap[w.id]
-                                        : 0;
-                                return (
-                                    <li
-                                        key={w.id}
-                                        className='border rounded p-3 bg-white flex flex-col md:flex-row md:items-center md:gap-4'>
-                                        <div className='flex-1'>
-                                            <div className='font-semibold'>
-                                                {w.task?.title ||
-                                                    "Untitled Task"}
-                                            </div>
-                                            <div className='text-xs text-gray-500'>
-                                                {w.task?.description}
-                                            </div>
-                                        </div>
-                                        <div className='flex items-center gap-2 mt-2 md:mt-0'>
-                                            <span className='font-mono text-base'>
-                                                {formatTime(
-                                                    w.totalTime + extra
-                                                )}
-                                            </span>
-                                            <span className='text-xs text-gray-500'>
-                                                {new Date(
-                                                    w.date
-                                                ).toLocaleDateString()}
-                                            </span>
-                                            {w.task &&
-                                                w.task.status ===
-                                                    "completed" && (
-                                                    <button
-                                                        className='ml-2 px-2 py-1 rounded bg-blue-100 text-blue-700 hover:bg-blue-200'
-                                                        onClick={() =>
-                                                            handleReopenTask(
-                                                                w.task.id
-                                                            )
-                                                        }
-                                                        title='Reopen Task'>
-                                                        Reopen
-                                                    </button>
-                                                )}
-                                            {w.id &&
-                                                w.id.startsWith("completed-") &&
-                                                w.totalTime === 0 && (
-                                                    <span className='text-xs text-gray-400 italic'>
-                                                        No work time
-                                                    </span>
-                                                )}
-                                        </div>
-                                    </li>
-                                );
-                            })}
-                            {/* Show pseudo-entries for running timers with no workHistory yet */}
-                            {Object.entries(runningTimeMap)
-                                .filter(([k]) => k.startsWith("new-"))
-                                .map(([k, v]) => {
-                                    const taskId = Number(
-                                        k.replace("new-", "")
-                                    );
-                                    const task = tasks.find(
-                                        (t) => t.id === taskId
-                                    );
-                                    return (
-                                        <li
-                                            key={k}
-                                            className='border rounded p-3 bg-white flex flex-col md:flex-row md:items-center md:gap-4'>
-                                            <div className='flex-1'>
-                                                <div className='font-semibold'>
-                                                    {task?.title ||
-                                                        "Untitled Task"}
-                                                </div>
-                                                <div className='text-xs text-gray-500'>
-                                                    {task?.description}
-                                                </div>
-                                            </div>
-                                            <div className='flex items-center gap-2 mt-2 md:mt-0'>
-                                                <span className='font-mono text-base'>
-                                                    {formatTime(v)}
-                                                </span>
-                                                <span className='text-xs text-gray-500'>
-                                                    {new Date().toLocaleDateString()}
-                                                </span>
-                                            </div>
-                                        </li>
-                                    );
-                                })}
-                        </ul>
-                    )}
-                </div>
-            )}
+                    <DialogFooter>
+                        <Button
+                            variant='outline'
+                            onClick={() => {
+                                setIsEditCategoryDialogOpen(false);
+                                setEditingCategory(null);
+                            }}>
+                            Cancel
+                        </Button>
+                        <Button
+                            onClick={handleUpdateCategory}
+                            disabled={!editingCategory?.name?.trim()}>
+                            Update Category
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

@@ -11,9 +11,12 @@ model Task {
   id          Int         @id @default(autoincrement())
   title       String
   description String?
+  icon        String      @default("Target") // Default task icon
+  categoryId  Int?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
-  status      String      @default("not_started")
+  status      String      @default("active") // Changed from "not_started"
+  category    TaskCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   dailyWorks  DailyWork[]
 }
 
@@ -27,4 +30,65 @@ model DailyWork {
   task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
 
   @@unique([taskId, date])
+}
+
+model TaskCategory {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  icon      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tasks     Task[]
+}
+
+model Note {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String?
+  categoryId Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  category  NoteCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+}
+
+model NoteCategory {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  icon      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  notes     Note[]
+}
+
+model Habit {
+  id        Int      @id @default(autoincrement())
+  name      String
+  period    String   @default("40") // "40" or "100"
+  icon      String   @default("Target") // Default habit icon
+  categoryId Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  category  HabitCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  days      HabitDay[]
+}
+
+model HabitCategory {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  icon      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  habits    Habit[]
+}
+
+model HabitDay {
+  id        Int      @id @default(autoincrement())
+  habitId   Int
+  day       Int      // Day number (1-40 or 1-100)
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  habit     Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  @@unique([habitId, day])
 }

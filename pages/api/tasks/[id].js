@@ -7,20 +7,33 @@ export default async function handler(req, res) {
     if (req.method === "GET") {
         const task = await prisma.task.findUnique({
             where: { id: Number(id) },
+            include: {
+                category: true,
+            },
         });
         if (!task) return res.status(404).json({ error: "Task not found" });
         return res.status(200).json(task);
     }
     if (req.method === "PUT") {
-        const { title, description, status } = req.body;
         try {
+            const { title, description, status, icon, categoryId } = req.body;
             const task = await prisma.task.update({
-                where: { id: Number(id) },
-                data: { title, description, status },
+                where: { id: parseInt(id) },
+                data: {
+                    title,
+                    description,
+                    status,
+                    icon: icon || "Target",
+                    categoryId: categoryId || null,
+                },
+                include: {
+                    category: true,
+                },
             });
-            return res.status(200).json(task);
-        } catch (e) {
-            return res.status(404).json({ error: "Task not found" });
+            res.status(200).json(task);
+        } catch (error) {
+            console.error("Error updating task:", error);
+            res.status(500).json({ error: "Failed to update task" });
         }
     }
     if (req.method === "DELETE") {

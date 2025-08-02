@@ -1,11 +1,9 @@
 "use client";
 import Link from "next/link";
-import Image from "next/image";
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { redirect } from "next/navigation";
 
-import logo from "../public/img/logo.png";
 import {
     Card,
     CardContent,
@@ -13,14 +11,7 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
-import {
-    CheckCircle,
-    Calendar,
-    BookOpen,
-    Target,
-    Timer,
-    Sparkles,
-} from "lucide-react";
+import { CheckCircle, Calendar, BookOpen, Target, Timer } from "lucide-react";
 
 import { useRouter } from "next/navigation";
 
@@ -69,11 +60,11 @@ export default function Home() {
             <header className='container mx-auto px-4 py-6'>
                 <nav className='flex items-center justify-between'>
                     <div className='flex items-center space-x-2'>
-                        <Image
-                            src={logo}
-                            width={70}
-                            height={70}
-                            alt='logo'></Image>
+                        <img
+                            src='/img/logo.png'
+                            alt='Focus Mint Logo'
+                            className='h-[50px] w-auto mr-3'
+                        />
                     </div>
                     <div className='flex items-center gap-4'>
                         <Link href='/dashboard'>

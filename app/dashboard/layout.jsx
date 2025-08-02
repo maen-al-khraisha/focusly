@@ -5,21 +5,11 @@ import Link from "next/link";
 
 import { UserButton, useUser } from "@clerk/nextjs";
 
-import logo from "../../public/img/logo.png";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-    CheckCircle,
-    Calendar,
-    BookOpen,
-    Target,
-    Menu,
-    X,
-    Sparkles,
-} from "lucide-react";
+import { CheckCircle, Calendar, BookOpen, Target, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import Image from "next/image";
 import { redirect } from "next/navigation";
 import DarkModeToggle from "@/components/DarkModeToggle";
 
@@ -31,16 +21,18 @@ const navigation = [
 ];
 
 export default function DashboardLayout({ children }) {
+    const { user } = useUser();
+
+    if (!user) {
+        redirect("/sign-in");
+        return null;
+    }
+
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const pathname = usePathname();
 
-    const { user } = useUser();
-    if (!user) {
-        return redirect("/sign-in");
-    }
-
     return (
-        <div className='min-h-screen bg-secondary-100'>
+        <div className='min-h-screen bg-secondary-50'>
             {/* Mobile sidebar */}
             <div
                 className={cn(
@@ -55,11 +47,10 @@ export default function DashboardLayout({ children }) {
                     <Card className='flex flex-1 flex-col rounded-none border-0 bg-primary-50'>
                         <div className='flex h-16 shrink-0 items-center justify-between px-4'>
                             <div className='flex items-center space-x-2'>
-                                <Image
-                                    src={logo}
-                                    width={40}
-                                    height={40}
-                                    alt='Logo'
+                                <img
+                                    src='/img/logo.png'
+                                    alt='Focus Mint Logo'
+                                    className='h-[50px] w-auto mr-3'
                                 />
                             </div>
                             <Button
@@ -97,16 +88,17 @@ export default function DashboardLayout({ children }) {
             </div>
 
             {/* Desktop sidebar */}
-            <div className='hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-64 lg:flex-col border-r border-secondary-300'>
+            <div className='hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-64 lg:flex-col border-r '>
                 <Card className='flex flex-1 flex-col rounded-none border-0 shadow-lg bg-primary-50'>
-                    <div className='flex h-auto shrink-0 items-center px-4'>
+                    <div className='flex h-auto shrink-0 items-center px-4 align-center justify-center'>
                         <Link href='/'>
-                            <Image
-                                src={logo}
-                                width={100}
-                                height={100}
-                                alt='Logo'
-                            />
+                            <div className='flex items-center m-6 '>
+                                <img
+                                    src='/img/logo.png'
+                                    alt='Focus Mint Logo'
+                                    className='h-auto w-full mr-3'
+                                />
+                            </div>
                         </Link>
                     </div>
                     <nav className='flex flex-1 flex-col px-4 pb-4 mt-5 gap-5'>
@@ -133,7 +125,7 @@ export default function DashboardLayout({ children }) {
 
             {/* Main content */}
             <div className='lg:pl-64 '>
-                <div className='sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-secondary-300 bg-secondary-100 px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8'>
+                <div className='sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b  bg-secondary-50 px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8'>
                     <Button
                         variant='ghost'
                         size='sm'

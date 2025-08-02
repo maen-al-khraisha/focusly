@@ -25,6 +25,8 @@ export default async function handler(req, res) {
                             title: true,
                             description: true,
                             status: true,
+                            icon: true,
+                            category: true,
                         },
                     },
                 },
@@ -58,8 +60,10 @@ export default async function handler(req, res) {
                     title: true,
                     description: true,
                     status: true,
+                    icon: true,
                     updatedAt: true,
                     createdAt: true,
+                    category: true,
                 },
                 orderBy: { updatedAt: "desc" },
             });
@@ -83,6 +87,8 @@ export default async function handler(req, res) {
                         title: task.title,
                         description: task.description,
                         status: task.status,
+                        icon: task.icon,
+                        category: task.category,
                     },
                 })),
             ];
