@@ -76,10 +76,17 @@ export default function CalendarPage() {
     const deleteEvent = async (eventId) => {
         if (confirm("Are you sure you want to delete this event?")) {
             try {
-                await axios.delete(`/api/calendar-events/${eventId}`);
-                setEvents(events.filter(event => event.id !== eventId));
+                const response = await axios.delete(`/api/calendar-events/${eventId}`);
+                if (response.status === 204) {
+                    setEvents(events.filter(event => event.id !== eventId));
+                }
             } catch (error) {
                 console.error("Error deleting event:", error);
+                if (error.response?.status === 404) {
+                    alert("Event not found. It may have already been deleted.");
+                } else {
+                    alert("Failed to delete event. Please try again.");
+                }
             }
         }
     };

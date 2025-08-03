@@ -50,6 +50,15 @@ export default async function handler(req, res) {
 
     if (req.method === "DELETE") {
         try {
+            // First check if the event exists
+            const event = await prisma.calendarEvent.findUnique({
+                where: { id: parseInt(id) }
+            });
+
+            if (!event) {
+                return res.status(404).json({ error: "Calendar event not found" });
+            }
+
             await prisma.calendarEvent.delete({
                 where: { id: parseInt(id) }
             });
@@ -57,7 +66,10 @@ export default async function handler(req, res) {
             return res.status(204).end();
         } catch (error) {
             console.error("Error deleting calendar event:", error);
-            return res.status(500).json({ error: "Failed to delete calendar event" });
+            return res.status(500).json({ 
+                error: "Failed to delete calendar event", 
+                details: error.message 
+            });
         }
     }
 
