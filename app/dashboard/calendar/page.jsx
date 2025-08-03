@@ -1,156 +1,350 @@
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
-import {
-    Calendar as CalendarIcon,
-    Clock,
-    Star,
-    CheckCircle,
-    Zap,
-    Target,
+"use client";
+
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { 
+    Plus, 
+    Calendar, 
+    Clock, 
+    Link, 
+    Edit, 
+    Trash2, 
+    ChevronLeft, 
+    ChevronRight,
+    Save,
+    X
 } from "lucide-react";
 
-export default function Calendar() {
+export default function CalendarPage() {
+    const [currentDate, setCurrentDate] = useState(new Date());
+    const [events, setEvents] = useState([]);
+    const [isAddEventDialogOpen, setIsAddEventDialogOpen] = useState(false);
+    const [isEditEventDialogOpen, setIsEditEventDialogOpen] = useState(false);
+    const [selectedEvent, setSelectedEvent] = useState(null);
+    const [newEvent, setNewEvent] = useState({
+        name: "",
+        description: "",
+        link: "",
+        time: "",
+        date: ""
+    });
+
+    useEffect(() => {
+        fetchEvents();
+    }, [currentDate]);
+
+    const fetchEvents = async () => {
+        try {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth() + 1;
+            const response = await axios.get(`/api/calendar-events?year=${year}&month=${month}`);
+            setEvents(response.data);
+        } catch (error) {
+            console.error("Error fetching events:", error);
+        }
+    };
+
+    const createEvent = async () => {
+        try {
+            const response = await axios.post("/api/calendar-events", newEvent);
+            setEvents([...events, response.data]);
+            setNewEvent({ name: "", description: "", link: "", time: "", date: "" });
+            setIsAddEventDialogOpen(false);
+        } catch (error) {
+            console.error("Error creating event:", error);
+        }
+    };
+
+    const updateEvent = async () => {
+        try {
+            const response = await axios.put(`/api/calendar-events/${selectedEvent.id}`, newEvent);
+            setEvents(events.map(event => event.id === selectedEvent.id ? response.data : event));
+            setNewEvent({ name: "", description: "", link: "", time: "", date: "" });
+            setSelectedEvent(null);
+            setIsEditEventDialogOpen(false);
+        } catch (error) {
+            console.error("Error updating event:", error);
+        }
+    };
+
+    const deleteEvent = async (eventId) => {
+        if (confirm("Are you sure you want to delete this event?")) {
+            try {
+                await axios.delete(`/api/calendar-events/${eventId}`);
+                setEvents(events.filter(event => event.id !== eventId));
+            } catch (error) {
+                console.error("Error deleting event:", error);
+            }
+        }
+    };
+
+    const handleEditEvent = (event) => {
+        setSelectedEvent(event);
+        setNewEvent({
+            name: event.name,
+            description: event.description || "",
+            link: event.link || "",
+            time: event.time || "",
+            date: event.date.split('T')[0]
+        });
+        setIsEditEventDialogOpen(true);
+    };
+
+    const getDaysInMonth = (date) => {
+        const year = date.getFullYear();
+        const month = date.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const daysInMonth = lastDay.getDate();
+        const startingDayOfWeek = firstDay.getDay();
+
+        const days = [];
+        for (let i = 0; i < startingDayOfWeek; i++) {
+            days.push(null);
+        }
+        for (let i = 1; i <= daysInMonth; i++) {
+            days.push(new Date(year, month, i));
+        }
+        return days;
+    };
+
+    const getEventsForDate = (date) => {
+        if (!date) return [];
+        const dateString = date.toISOString().split('T')[0];
+        return events.filter(event => event.date.split('T')[0] === dateString);
+    };
+
+    const formatTime = (time) => {
+        if (!time) return "";
+        return time;
+    };
+
+    const navigateMonth = (direction) => {
+        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + direction, 1));
+    };
+
+    const isToday = (date) => {
+        const today = new Date();
+        return date && date.toDateString() === today.toDateString();
+    };
+
+    const isCurrentMonth = (date) => {
+        return date && date.getMonth() === currentDate.getMonth();
+    };
+
+    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const monthNames = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ];
+
     return (
-        <div className='p-6 space-y-8'>
-            <div>
-                <h2 className='text-2xl font-bold text-gray-900'>Calendar</h2>
-                <p className='text-gray-600'>
-                    Schedule and manage your time effectively
-                </p>
+        <div className="p-6">
+            <div className="flex justify-between items-center mb-6">
+                <h1 className="text-2xl font-bold">Calendar</h1>
+                <Dialog open={isAddEventDialogOpen} onOpenChange={setIsAddEventDialogOpen}>
+                    <DialogTrigger asChild>
+                        <Button>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Event
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>Add New Event</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-sm font-medium">Event Name</label>
+                                <Input
+                                    value={newEvent.name}
+                                    onChange={(e) => setNewEvent({ ...newEvent, name: e.target.value })}
+                                    placeholder="Enter event name"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium">Description</label>
+                                <Textarea
+                                    value={newEvent.description}
+                                    onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                                    placeholder="Enter event description"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium">Link</label>
+                                <Input
+                                    value={newEvent.link}
+                                    onChange={(e) => setNewEvent({ ...newEvent, link: e.target.value })}
+                                    placeholder="Enter event link (optional)"
+                                />
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="text-sm font-medium">Date</label>
+                                    <Input
+                                        type="date"
+                                        value={newEvent.date}
+                                        onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="text-sm font-medium">Time</label>
+                                    <Input
+                                        type="time"
+                                        value={newEvent.time}
+                                        onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex justify-end gap-2">
+                                <Button variant="outline" onClick={() => setIsAddEventDialogOpen(false)}>
+                                    Cancel
+                                </Button>
+                                <Button onClick={createEvent}>
+                                    <Save className="h-4 w-4 mr-2" />
+                                    Add Event
+                                </Button>
+                            </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </div>
 
-            <Card className='border-dashed border-2 border-gray-300 bg-gradient-to-br from-blue-50 to-indigo-50'>
-                <CardContent className='flex flex-col items-center justify-center py-20'>
-                    <div className='w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mb-8 shadow-lg'>
-                        <CalendarIcon className='h-10 w-10 text-blue-600' />
-                    </div>
-
-                    <div className='text-center mb-8'>
-                        <CardTitle className='text-2xl mb-3 text-gray-800'>
-                            🚧 Calendar Feature Coming Soon
+            <Card>
+                <CardHeader>
+                    <div className="flex justify-between items-center">
+                        <Button variant="outline" size="sm" onClick={() => navigateMonth(-1)}>
+                            <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <CardTitle className="text-xl">
+                            {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
                         </CardTitle>
-                        <CardDescription className='text-lg max-w-2xl leading-relaxed'>
-                            We're building a powerful calendar integration to
-                            help you visualize your tasks, schedule work
-                            sessions, and track deadlines. This feature will
-                            seamlessly connect with your existing tasks and
-                            habits.
-                        </CardDescription>
+                        <Button variant="outline" size="sm" onClick={() => navigateMonth(1)}>
+                            <ChevronRight className="h-4 w-4" />
+                        </Button>
                     </div>
-
-                    {/* Progress indicator */}
-                    <div className='mb-8'>
-                        <div className='flex items-center space-x-2 text-sm text-gray-600'>
-                            <CheckCircle className='h-4 w-4 text-green-500' />
-                            <span>Task Management</span>
-                            <div className='w-8 h-0.5 bg-green-500'></div>
-                            <CheckCircle className='h-4 w-4 text-green-500' />
-                            <span>Habit Tracking</span>
-                            <div className='w-8 h-0.5 bg-gray-300'></div>
-                            <div className='w-4 h-4 rounded-full bg-gray-300 flex items-center justify-center'>
-                                <span className='text-xs text-gray-500'>3</span>
+                </CardHeader>
+                <CardContent>
+                    <div className="grid grid-cols-7 gap-1">
+                        {dayNames.map(day => (
+                            <div key={day} className="p-2 text-center font-medium text-gray-600">
+                                {day}
                             </div>
-                            <span className='text-gray-500'>Calendar View</span>
-                        </div>
-                    </div>
-
-                    {/* Feature preview */}
-                    <div className='grid grid-cols-1 md:grid-cols-3 gap-6 w-full max-w-4xl'>
-                        <div className='flex items-start space-x-4 p-6 bg-white rounded-xl shadow-sm border border-gray-200'>
-                            <div className='w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0'>
-                                <Clock className='h-6 w-6 text-blue-600' />
+                        ))}
+                        {getDaysInMonth(currentDate).map((date, index) => (
+                            <div
+                                key={index}
+                                className={`p-2 min-h-[100px] border ${
+                                    isToday(date) ? 'bg-blue-50 border-blue-200' : 'border-gray-200'
+                                } ${!isCurrentMonth(date) ? 'text-gray-400' : ''}`}
+                            >
+                                {date && (
+                                    <>
+                                        <div className="text-sm font-medium mb-1">
+                                            {date.getDate()}
+                                        </div>
+                                        <div className="space-y-1">
+                                            {getEventsForDate(date).map(event => (
+                                                <div
+                                                    key={event.id}
+                                                    className="text-xs p-1 bg-green-100 rounded cursor-pointer hover:bg-green-200"
+                                                    onClick={() => handleEditEvent(event)}
+                                                >
+                                                    <div className="font-medium truncate">{event.name}</div>
+                                                    {event.time && (
+                                                        <div className="text-gray-600 flex items-center gap-1">
+                                                            <Clock className="h-2 w-2" />
+                                                            {formatTime(event.time)}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </>
+                                )}
                             </div>
-                            <div>
-                                <div className='font-semibold text-gray-900 mb-1'>
-                                    Time Blocking
-                                </div>
-                                <div className='text-sm text-gray-600 leading-relaxed'>
-                                    Schedule focused work sessions and allocate
-                                    specific time slots for your tasks.
-                                    Visualize your day and optimize
-                                    productivity.
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className='flex items-start space-x-4 p-6 bg-white rounded-xl shadow-sm border border-gray-200'>
-                            <div className='w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0'>
-                                <Star className='h-6 w-6 text-purple-600' />
-                            </div>
-                            <div>
-                                <div className='font-semibold text-gray-900 mb-1'>
-                                    Priority Planning
-                                </div>
-                                <div className='text-sm text-gray-600 leading-relaxed'>
-                                    Organize tasks by importance and urgency.
-                                    Set deadlines and get visual reminders for
-                                    upcoming due dates.
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className='flex items-start space-x-4 p-6 bg-white rounded-xl shadow-sm border border-gray-200'>
-                            <div className='w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0'>
-                                <Target className='h-6 w-6 text-green-600' />
-                            </div>
-                            <div>
-                                <div className='font-semibold text-gray-900 mb-1'>
-                                    Goal Tracking
-                                </div>
-                                <div className='text-sm text-gray-600 leading-relaxed'>
-                                    Track progress towards your goals with
-                                    visual milestones and achievement
-                                    indicators. Stay motivated and focused.
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Additional features */}
-                    <div className='mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl'>
-                        <div className='flex items-center space-x-3 p-4 bg-white rounded-lg shadow-sm border border-gray-200'>
-                            <Zap className='h-5 w-5 text-yellow-500' />
-                            <div>
-                                <div className='font-medium text-sm text-gray-900'>
-                                    Smart Notifications
-                                </div>
-                                <div className='text-xs text-gray-600'>
-                                    Get timely reminders for tasks and deadlines
-                                </div>
-                            </div>
-                        </div>
-                        <div className='flex items-center space-x-3 p-4 bg-white rounded-lg shadow-sm border border-gray-200'>
-                            <CalendarIcon className='h-5 w-5 text-blue-500' />
-                            <div>
-                                <div className='font-medium text-sm text-gray-900'>
-                                    Integration Ready
-                                </div>
-                                <div className='text-xs text-gray-600'>
-                                    Connect with your existing calendar apps
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Call to action */}
-                    <div className='mt-8 text-center'>
-                        <p className='text-sm text-gray-500 mb-2'>
-                            Want to be notified when this feature launches?
-                        </p>
-                        <div className='flex items-center justify-center space-x-2 text-sm text-gray-600'>
-                            <CheckCircle className='h-4 w-4 text-green-500' />
-                            <span>
-                                We'll notify you via email when it's ready!
-                            </span>
-                        </div>
+                        ))}
                     </div>
                 </CardContent>
             </Card>
+
+            {/* Edit Event Dialog */}
+            <Dialog open={isEditEventDialogOpen} onOpenChange={setIsEditEventDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Edit Event</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="text-sm font-medium">Event Name</label>
+                            <Input
+                                value={newEvent.name}
+                                onChange={(e) => setNewEvent({ ...newEvent, name: e.target.value })}
+                                placeholder="Enter event name"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium">Description</label>
+                            <Textarea
+                                value={newEvent.description}
+                                onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                                placeholder="Enter event description"
+                            />
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium">Link</label>
+                            <Input
+                                value={newEvent.link}
+                                onChange={(e) => setNewEvent({ ...newEvent, link: e.target.value })}
+                                placeholder="Enter event link (optional)"
+                            />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="text-sm font-medium">Date</label>
+                                <Input
+                                    type="date"
+                                    value={newEvent.date}
+                                    onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="text-sm font-medium">Time</label>
+                                <Input
+                                    type="time"
+                                    value={newEvent.time}
+                                    onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
+                                />
+                            </div>
+                        </div>
+                        <div className="flex justify-between">
+                            <Button
+                                variant="outline"
+                                onClick={() => deleteEvent(selectedEvent?.id)}
+                                className="text-red-600 hover:text-red-700"
+                            >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                            </Button>
+                            <div className="flex gap-2">
+                                <Button variant="outline" onClick={() => setIsEditEventDialogOpen(false)}>
+                                    Cancel
+                                </Button>
+                                <Button onClick={updateEvent}>
+                                    <Save className="h-4 w-4 mr-2" />
+                                    Update Event
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

@@ -141,3 +141,15 @@ model AgendaCell {
 
   @@unique([rowId, columnId])
 }
+
+// Calendar Models
+model CalendarEvent {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  link        String?
+  time        String?  // Time in HH:MM format
+  date        DateTime @db.Date
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
