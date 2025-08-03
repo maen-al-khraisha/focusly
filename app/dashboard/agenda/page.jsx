@@ -65,8 +65,6 @@ export default function AgendaPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [newSheet, setNewSheet] = useState({
         name: "",
-        description: "",
-        icon: "FileText",
         columns: [],
     });
     const [newRow, setNewRow] = useState({});
@@ -93,8 +91,6 @@ export default function AgendaPage() {
             setSheets([response.data, ...sheets]);
             setNewSheet({
                 name: "",
-                description: "",
-                icon: "FileText",
                 columns: [],
             });
             setIsCreateDialogOpen(false);
@@ -205,58 +201,6 @@ export default function AgendaPage() {
                                 />
                             </div>
                             <div>
-                                <label className='text-sm font-medium'>
-                                    Description
-                                </label>
-                                <Textarea
-                                    value={newSheet.description}
-                                    onChange={(e) =>
-                                        setNewSheet({
-                                            ...newSheet,
-                                            description: e.target.value,
-                                        })
-                                    }
-                                    placeholder='Optional description'
-                                />
-                            </div>
-                            <div>
-                                <label className='text-sm font-medium'>
-                                    Icon
-                                </label>
-                                <Select
-                                    value={newSheet.icon}
-                                    onValueChange={(value) =>
-                                        setNewSheet({
-                                            ...newSheet,
-                                            icon: value,
-                                        })
-                                    }>
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value='FileText'>
-                                            Document
-                                        </SelectItem>
-                                        <SelectItem value='Lock'>
-                                            Passwords
-                                        </SelectItem>
-                                        <SelectItem value='User'>
-                                            Contacts
-                                        </SelectItem>
-                                        <SelectItem value='Package'>
-                                            Inventory
-                                        </SelectItem>
-                                        <SelectItem value='Calendar'>
-                                            Events
-                                        </SelectItem>
-                                        <SelectItem value='ShoppingCart'>
-                                            Shopping
-                                        </SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div>
                                 <div className='flex justify-between items-center mb-2'>
                                     <label className='text-sm font-medium'>
                                         Columns
@@ -351,26 +295,28 @@ export default function AgendaPage() {
             </div>
 
             {!selectedSheet ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
                     {isLoading ? (
-                        <div className="col-span-full text-center py-8">
+                        <div className='col-span-full text-center py-8'>
                             <p>Loading agenda sheets...</p>
                         </div>
                     ) : sheets.length === 0 ? (
-                        <div className="col-span-full text-center py-8">
-                            <p className="text-gray-500">No sheets created yet. Create your first sheet to get started!</p>
+                        <div className='col-span-full text-center py-8'>
+                            <p className='text-gray-500'>
+                                No sheets created yet. Create your first sheet
+                                to get started!
+                            </p>
                         </div>
                     ) : (
                         sheets.map((sheet) => (
-                            <Card key={sheet.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                            <Card
+                                key={sheet.id}
+                                className='cursor-pointer hover:shadow-md transition-shadow'>
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2">
                                         {getIconComponent(sheet.icon)}
                                         {sheet.name}
                                     </CardTitle>
-                                    {sheet.description && (
-                                        <p className="text-sm text-gray-600">{sheet.description}</p>
-                                    )}
                                     <div className="flex gap-1">
                                         <Badge variant="secondary">{sheet.columns?.length || 0} columns</Badge>
                                         <Badge variant="outline">{sheet.rows?.length || 0} rows</Badge>
@@ -379,9 +325,8 @@ export default function AgendaPage() {
                                 <CardContent>
                                     <Button
                                         onClick={() => setSelectedSheet(sheet)}
-                                        className="w-full"
-                                    >
-                                        <Eye className="h-4 w-4 mr-2" />
+                                        className='w-full'>
+                                        <Eye className='h-4 w-4 mr-2' />
                                         View Sheet
                                     </Button>
                                 </CardContent>

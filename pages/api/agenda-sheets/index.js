@@ -45,8 +45,8 @@ export default async function handler(req, res) {
             const sheet = await prisma.agendaSheet.create({
                 data: {
                     name,
-                    description,
-                    icon: icon || "FileText",
+                    description: null,
+                    icon: "FileText",
                     columns: {
                         create:
                             columns?.map((col, index) => ({
