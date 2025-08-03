@@ -260,6 +260,9 @@ export default function CalendarPage() {
                                 {date && (
                                     <>
                                         <div className="text-sm font-medium mb-1">
+                                            <div className="text-xs text-gray-500 mb-1">
+                                                {dayNames[date.getDay()]}
+                                            </div>
                                             {date.getDate()}
                                         </div>
                                         <div className="space-y-1">
