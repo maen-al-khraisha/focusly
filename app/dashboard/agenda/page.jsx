@@ -355,17 +355,22 @@ export default function AgendaPage() {
                             {!collapsedSheets.has(sheet.id) && (
                                 <CardContent className='pt-0'>
                                     <div className='overflow-x-auto'>
-                                        <table className='w-full'>
+                                        <table className='w-full rounded-lg overflow-hidden'>
                                             <thead>
-                                                <tr className='border-b' style={{ backgroundColor: '#f8f9fa' }}>
+                                                <tr
+                                                    className='border-b'
+                                                    style={{
+                                                        borderRadius: "20px",
+                                                    }}>
                                                     {sheet.columns?.map(
                                                         (column) => (
                                                             <th
                                                                 key={column.id}
                                                                 className='text-left p-3 font-bold'
                                                                 style={{
-                                                                    color: "#335c67",
-                                                                    backgroundColor: '#f8f9fa'
+                                                                    color: "#fff3b0",
+                                                                    backgroundColor:
+                                                                        "#335c67",
                                                                 }}>
                                                                 <div className='flex items-center gap-2'>
                                                                     {getColumnTypeIcon(
