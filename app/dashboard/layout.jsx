@@ -15,9 +15,9 @@ import DarkModeToggle from "@/components/DarkModeToggle";
 
 const navigation = [
     { name: "Tasks", href: "/dashboard/tasks", icon: CheckCircle },
-    { name: "Habits", href: "/dashboard/habits", icon: Target },
     { name: "Notes", href: "/dashboard/notes", icon: BookOpen },
     { name: "Calendar", href: "/dashboard/calendar", icon: Calendar },
+    { name: "Habits", href: "/dashboard/habits", icon: Target },
     { name: "Agenda", href: "/dashboard/agenda", icon: Calendar },
 ];
 
