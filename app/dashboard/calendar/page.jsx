@@ -6,19 +6,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { 
-    Plus, 
-    Calendar, 
-    Clock, 
-    Link, 
-    Edit, 
-    Trash2, 
-    ChevronLeft, 
+import {
+    Plus,
+    Calendar,
+    Clock,
+    Link,
+    Edit,
+    Trash2,
+    ChevronLeft,
     ChevronRight,
     Save,
-    X
+    X,
 } from "lucide-react";
 
 export default function CalendarPage() {
@@ -32,7 +38,7 @@ export default function CalendarPage() {
         description: "",
         link: "",
         time: "",
-        date: ""
+        date: "",
     });
 
     useEffect(() => {
@@ -43,7 +49,9 @@ export default function CalendarPage() {
         try {
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth() + 1;
-            const response = await axios.get(`/api/calendar-events?year=${year}&month=${month}`);
+            const response = await axios.get(
+                `/api/calendar-events?year=${year}&month=${month}`
+            );
             setEvents(response.data);
         } catch (error) {
             console.error("Error fetching events:", error);
@@ -54,7 +62,13 @@ export default function CalendarPage() {
         try {
             const response = await axios.post("/api/calendar-events", newEvent);
             setEvents([...events, response.data]);
-            setNewEvent({ name: "", description: "", link: "", time: "", date: "" });
+            setNewEvent({
+                name: "",
+                description: "",
+                link: "",
+                time: "",
+                date: "",
+            });
             setIsAddEventDialogOpen(false);
         } catch (error) {
             console.error("Error creating event:", error);
@@ -63,9 +77,22 @@ export default function CalendarPage() {
 
     const updateEvent = async () => {
         try {
-            const response = await axios.put(`/api/calendar-events/${selectedEvent.id}`, newEvent);
-            setEvents(events.map(event => event.id === selectedEvent.id ? response.data : event));
-            setNewEvent({ name: "", description: "", link: "", time: "", date: "" });
+            const response = await axios.put(
+                `/api/calendar-events/${selectedEvent.id}`,
+                newEvent
+            );
+            setEvents(
+                events.map((event) =>
+                    event.id === selectedEvent.id ? response.data : event
+                )
+            );
+            setNewEvent({
+                name: "",
+                description: "",
+                link: "",
+                time: "",
+                date: "",
+            });
             setSelectedEvent(null);
             setIsEditEventDialogOpen(false);
         } catch (error) {
@@ -76,14 +103,22 @@ export default function CalendarPage() {
     const deleteEvent = async (eventId) => {
         if (confirm("Are you sure you want to delete this event?")) {
             try {
-                const response = await axios.delete(`/api/calendar-events/${eventId}`);
+                const response = await axios.delete(
+                    `/api/calendar-events/${eventId}`
+                );
                 if (response.status === 204) {
-                    setEvents(events.filter(event => event.id !== eventId));
+                    setEvents(events.filter((event) => event.id !== eventId));
                     // Close the edit dialog if it's open
                     if (isEditEventDialogOpen) {
                         setIsEditEventDialogOpen(false);
                         setSelectedEvent(null);
-                        setNewEvent({ name: "", description: "", link: "", time: "", date: "" });
+                        setNewEvent({
+                            name: "",
+                            description: "",
+                            link: "",
+                            time: "",
+                            date: "",
+                        });
                     }
                 }
             } catch (error) {
@@ -104,7 +139,7 @@ export default function CalendarPage() {
             description: event.description || "",
             link: event.link || "",
             time: event.time || "",
-            date: event.date.split('T')[0]
+            date: event.date.split("T")[0],
         });
         setIsEditEventDialogOpen(true);
     };
@@ -129,8 +164,10 @@ export default function CalendarPage() {
 
     const getEventsForDate = (date) => {
         if (!date) return [];
-        const dateString = date.toISOString().split('T')[0];
-        return events.filter(event => event.date.split('T')[0] === dateString);
+        const dateString = date.toISOString().split("T")[0];
+        return events.filter(
+            (event) => event.date.split("T")[0] === dateString
+        );
     };
 
     const formatTime = (time) => {
@@ -139,7 +176,13 @@ export default function CalendarPage() {
     };
 
     const navigateMonth = (direction) => {
-        setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + direction, 1));
+        setCurrentDate(
+            new Date(
+                currentDate.getFullYear(),
+                currentDate.getMonth() + direction,
+                1
+            )
+        );
     };
 
     const isToday = (date) => {
@@ -153,18 +196,29 @@ export default function CalendarPage() {
 
     const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const monthNames = [
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
     ];
 
     return (
-        <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-2xl font-bold">Calendar</h1>
-                <Dialog open={isAddEventDialogOpen} onOpenChange={setIsAddEventDialogOpen}>
+        <div className='p-6'>
+            <div className='flex justify-end items-center mb-6'>
+                <Dialog
+                    open={isAddEventDialogOpen}
+                    onOpenChange={setIsAddEventDialogOpen}>
                     <DialogTrigger asChild>
                         <Button>
-                            <Plus className="h-4 w-4 mr-2" />
+                            <Plus className='h-4 w-4 mr-2' />
                             Add Event
                         </Button>
                     </DialogTrigger>
@@ -172,55 +226,94 @@ export default function CalendarPage() {
                         <DialogHeader>
                             <DialogTitle>Add New Event</DialogTitle>
                         </DialogHeader>
-                        <div className="space-y-4">
+                        <div className='space-y-4'>
                             <div>
-                                <label className="text-sm font-medium">Event Name</label>
+                                <label className='text-sm font-medium'>
+                                    Event Name
+                                </label>
                                 <Input
                                     value={newEvent.name}
-                                    onChange={(e) => setNewEvent({ ...newEvent, name: e.target.value })}
-                                    placeholder="Enter event name"
+                                    onChange={(e) =>
+                                        setNewEvent({
+                                            ...newEvent,
+                                            name: e.target.value,
+                                        })
+                                    }
+                                    placeholder='Enter event name'
                                 />
                             </div>
                             <div>
-                                <label className="text-sm font-medium">Description</label>
+                                <label className='text-sm font-medium'>
+                                    Description
+                                </label>
                                 <Textarea
                                     value={newEvent.description}
-                                    onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
-                                    placeholder="Enter event description"
+                                    onChange={(e) =>
+                                        setNewEvent({
+                                            ...newEvent,
+                                            description: e.target.value,
+                                        })
+                                    }
+                                    placeholder='Enter event description'
                                 />
                             </div>
                             <div>
-                                <label className="text-sm font-medium">Link</label>
+                                <label className='text-sm font-medium'>
+                                    Link
+                                </label>
                                 <Input
                                     value={newEvent.link}
-                                    onChange={(e) => setNewEvent({ ...newEvent, link: e.target.value })}
-                                    placeholder="Enter event link (optional)"
+                                    onChange={(e) =>
+                                        setNewEvent({
+                                            ...newEvent,
+                                            link: e.target.value,
+                                        })
+                                    }
+                                    placeholder='Enter event link (optional)'
                                 />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
+                            <div className='grid grid-cols-2 gap-4'>
                                 <div>
-                                    <label className="text-sm font-medium">Date</label>
+                                    <label className='text-sm font-medium'>
+                                        Date
+                                    </label>
                                     <Input
-                                        type="date"
+                                        type='date'
                                         value={newEvent.date}
-                                        onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                                        onChange={(e) =>
+                                            setNewEvent({
+                                                ...newEvent,
+                                                date: e.target.value,
+                                            })
+                                        }
                                     />
                                 </div>
                                 <div>
-                                    <label className="text-sm font-medium">Time</label>
+                                    <label className='text-sm font-medium'>
+                                        Time
+                                    </label>
                                     <Input
-                                        type="time"
+                                        type='time'
                                         value={newEvent.time}
-                                        onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
+                                        onChange={(e) =>
+                                            setNewEvent({
+                                                ...newEvent,
+                                                time: e.target.value,
+                                            })
+                                        }
                                     />
                                 </div>
                             </div>
-                            <div className="flex justify-end gap-2">
-                                <Button variant="outline" onClick={() => setIsAddEventDialogOpen(false)}>
+                            <div className='flex justify-end gap-2'>
+                                <Button
+                                    variant='outline'
+                                    onClick={() =>
+                                        setIsAddEventDialogOpen(false)
+                                    }>
                                     Cancel
                                 </Button>
                                 <Button onClick={createEvent}>
-                                    <Save className="h-4 w-4 mr-2" />
+                                    <Save className='h-4 w-4 mr-2' />
                                     Add Event
                                 </Button>
                             </div>
@@ -231,22 +324,31 @@ export default function CalendarPage() {
 
             <Card>
                 <CardHeader>
-                    <div className="flex justify-between items-center">
-                        <Button variant="outline" size="sm" onClick={() => navigateMonth(-1)}>
-                            <ChevronLeft className="h-4 w-4" />
+                    <div className='flex justify-between items-center'>
+                        <Button
+                            variant='outline'
+                            size='sm'
+                            onClick={() => navigateMonth(-1)}>
+                            <ChevronLeft className='h-4 w-4' />
                         </Button>
-                        <CardTitle className="text-xl">
-                            {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
+                        <CardTitle className='text-xl'>
+                            {monthNames[currentDate.getMonth()]}{" "}
+                            {currentDate.getFullYear()}
                         </CardTitle>
-                        <Button variant="outline" size="sm" onClick={() => navigateMonth(1)}>
-                            <ChevronRight className="h-4 w-4" />
+                        <Button
+                            variant='outline'
+                            size='sm'
+                            onClick={() => navigateMonth(1)}>
+                            <ChevronRight className='h-4 w-4' />
                         </Button>
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <div className="grid grid-cols-7 gap-1">
-                        {dayNames.map(day => (
-                            <div key={day} className="p-2 text-center font-medium text-gray-600">
+                    <div className='grid grid-cols-7 gap-1'>
+                        {dayNames.map((day) => (
+                            <div
+                                key={day}
+                                className='p-2 text-center font-medium text-gray-600'>
                                 {day}
                             </div>
                         ))}
@@ -254,33 +356,45 @@ export default function CalendarPage() {
                             <div
                                 key={index}
                                 className={`p-2 min-h-[100px] border ${
-                                    isToday(date) ? 'bg-blue-50 border-blue-200' : 'border-gray-200'
-                                } ${!isCurrentMonth(date) ? 'text-gray-400' : ''}`}
-                            >
+                                    isToday(date)
+                                        ? "bg-blue-50 border-blue-200"
+                                        : "border-gray-200"
+                                } ${
+                                    !isCurrentMonth(date) ? "text-gray-400" : ""
+                                }`}>
                                 {date && (
                                     <>
-                                        <div className="text-sm font-medium mb-1">
-                                            <div className="text-xs text-gray-500 mb-1">
+                                        <div className='text-sm font-medium mb-1'>
+                                            <div className='text-xs text-gray-500 mb-1'>
                                                 {dayNames[date.getDay()]}
                                             </div>
                                             {date.getDate()}
                                         </div>
-                                        <div className="space-y-1">
-                                            {getEventsForDate(date).map(event => (
-                                                <div
-                                                    key={event.id}
-                                                    className="text-xs p-1 bg-green-100 rounded cursor-pointer hover:bg-green-200"
-                                                    onClick={() => handleEditEvent(event)}
-                                                >
-                                                    <div className="font-medium truncate">{event.name}</div>
-                                                    {event.time && (
-                                                        <div className="text-gray-600 flex items-center gap-1">
-                                                            <Clock className="h-2 w-2" />
-                                                            {formatTime(event.time)}
+                                        <div className='space-y-1'>
+                                            {getEventsForDate(date).map(
+                                                (event) => (
+                                                    <div
+                                                        key={event.id}
+                                                        className='text-xs p-1 bg-green-100 rounded cursor-pointer hover:bg-green-200'
+                                                        onClick={() =>
+                                                            handleEditEvent(
+                                                                event
+                                                            )
+                                                        }>
+                                                        <div className='font-medium truncate'>
+                                                            {event.name}
                                                         </div>
-                                                    )}
-                                                </div>
-                                            ))}
+                                                        {event.time && (
+                                                            <div className='text-gray-600 flex items-center gap-1'>
+                                                                <Clock className='h-2 w-2' />
+                                                                {formatTime(
+                                                                    event.time
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )
+                                            )}
                                         </div>
                                     </>
                                 )}
@@ -291,69 +405,107 @@ export default function CalendarPage() {
             </Card>
 
             {/* Edit Event Dialog */}
-            <Dialog open={isEditEventDialogOpen} onOpenChange={setIsEditEventDialogOpen}>
+            <Dialog
+                open={isEditEventDialogOpen}
+                onOpenChange={setIsEditEventDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Edit Event</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4">
+                    <div className='space-y-4'>
                         <div>
-                            <label className="text-sm font-medium">Event Name</label>
+                            <label className='text-sm font-medium'>
+                                Event Name
+                            </label>
                             <Input
                                 value={newEvent.name}
-                                onChange={(e) => setNewEvent({ ...newEvent, name: e.target.value })}
-                                placeholder="Enter event name"
+                                onChange={(e) =>
+                                    setNewEvent({
+                                        ...newEvent,
+                                        name: e.target.value,
+                                    })
+                                }
+                                placeholder='Enter event name'
                             />
                         </div>
                         <div>
-                            <label className="text-sm font-medium">Description</label>
+                            <label className='text-sm font-medium'>
+                                Description
+                            </label>
                             <Textarea
                                 value={newEvent.description}
-                                onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
-                                placeholder="Enter event description"
+                                onChange={(e) =>
+                                    setNewEvent({
+                                        ...newEvent,
+                                        description: e.target.value,
+                                    })
+                                }
+                                placeholder='Enter event description'
                             />
                         </div>
                         <div>
-                            <label className="text-sm font-medium">Link</label>
+                            <label className='text-sm font-medium'>Link</label>
                             <Input
                                 value={newEvent.link}
-                                onChange={(e) => setNewEvent({ ...newEvent, link: e.target.value })}
-                                placeholder="Enter event link (optional)"
+                                onChange={(e) =>
+                                    setNewEvent({
+                                        ...newEvent,
+                                        link: e.target.value,
+                                    })
+                                }
+                                placeholder='Enter event link (optional)'
                             />
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className='grid grid-cols-2 gap-4'>
                             <div>
-                                <label className="text-sm font-medium">Date</label>
+                                <label className='text-sm font-medium'>
+                                    Date
+                                </label>
                                 <Input
-                                    type="date"
+                                    type='date'
                                     value={newEvent.date}
-                                    onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                                    onChange={(e) =>
+                                        setNewEvent({
+                                            ...newEvent,
+                                            date: e.target.value,
+                                        })
+                                    }
                                 />
                             </div>
                             <div>
-                                <label className="text-sm font-medium">Time</label>
+                                <label className='text-sm font-medium'>
+                                    Time
+                                </label>
                                 <Input
-                                    type="time"
+                                    type='time'
                                     value={newEvent.time}
-                                    onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
+                                    onChange={(e) =>
+                                        setNewEvent({
+                                            ...newEvent,
+                                            time: e.target.value,
+                                        })
+                                    }
                                 />
                             </div>
                         </div>
-                        <div className="flex justify-between">
+                        <div className='flex justify-between'>
                             <Button
-                                variant="outline"
+                                variant='outline'
                                 onClick={() => deleteEvent(selectedEvent?.id)}
-                                className="text-red-600 hover:text-red-700"
-                            >
-                                <Trash2 className="h-4 w-4 mr-2" />
+                                className='text-red-600 hover:text-red-700'>
+                                <Trash2 className='h-4 w-4 mr-2' />
                                 Delete
                             </Button>
-                            <div className="flex gap-2">
-                                <Button variant="outline" onClick={() => setIsEditEventDialogOpen(false)}>
+                            <div className='flex gap-2'>
+                                <Button
+                                    variant='outline'
+                                    onClick={() =>
+                                        setIsEditEventDialogOpen(false)
+                                    }>
                                     Cancel
                                 </Button>
                                 <Button onClick={updateEvent}>
-                                    <Save className="h-4 w-4 mr-2" />
+                                    <Save className='h-4 w-4 mr-2' />
                                     Update Event
                                 </Button>
                             </div>

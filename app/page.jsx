@@ -61,9 +61,9 @@ export default function Home() {
                 <nav className='flex items-center justify-between'>
                     <div className='flex items-center space-x-2'>
                         <img
-                            src='/img/logo.png'
+                            src='/img/logo_landscape.png'
                             alt='Focus Mint Logo'
-                            className='h-[50px] w-auto mr-3'
+                            className='h-[100px] w-auto mr-3'
                         />
                     </div>
                     <div className='flex items-center gap-4'>

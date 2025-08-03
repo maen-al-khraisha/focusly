@@ -49,7 +49,7 @@ export default function DashboardLayout({ children }) {
                         <div className='flex h-16 shrink-0 items-center justify-between px-4'>
                             <div className='flex items-center space-x-2'>
                                 <img
-                                    src='/img/logo.png'
+                                    src='/img/logo_portrait.png'
                                     alt='Focus Mint Logo'
                                     className='h-[50px] w-auto mr-3'
                                 />
@@ -95,7 +95,7 @@ export default function DashboardLayout({ children }) {
                         <Link href='/'>
                             <div className='flex items-center m-6 '>
                                 <img
-                                    src='/img/logo.png'
+                                    src='/img/logo_portrait.png'
                                     alt='Focus Mint Logo'
                                     className='h-auto w-full mr-3'
                                 />
@@ -135,12 +135,15 @@ export default function DashboardLayout({ children }) {
                         <Menu className='h-5 w-5' />
                     </Button>
                     <div className='flex flex-1 gap-x-4 self-stretch justify-between items-center lg:gap-x-6'>
-                        <div className='flex items-center'>
+                        <div className='flex items-center gap-2'>
                             <h1 className='text-xl font-semibold text-primary-900'>
                                 {navigation.find(
                                     (item) => item.href === pathname
                                 )?.name || "Dashboard"}
                             </h1>
+                            <h3 className='text-sm text-primary-900'>
+                                All Your Focus in One Place.
+                            </h3>
                         </div>
 
                         <div className='flex items-center gap-x-4'>

@@ -462,13 +462,7 @@ export default function Habits() {
 
     return (
         <div className='p-6 space-y-8'>
-            <div className='flex items-center justify-between'>
-                <div>
-                    <h2 className='text-2xl font-bold text-gray-900'>Habits</h2>
-                    <p className='text-gray-600'>
-                        Track your habits and build consistency
-                    </p>
-                </div>
+            <div className='flex items-center justify-end'>
                 <div className='flex items-center gap-3'>
                     <Dialog
                         open={isCategoryDialogOpen}

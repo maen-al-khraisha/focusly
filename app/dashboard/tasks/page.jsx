@@ -421,8 +421,7 @@ export default function TasksPage() {
 
     return (
         <div className=' p-6 space-y-8'>
-            <div className='flex justify-between items-center mb-4'>
-                <h1 className='text-2xl font-bold'>Tasks</h1>
+            <div className='flex justify-end items-center mb-4'>
                 <div className='text-right'>
                     <div className='text-sm text-gray-600'>Today's Work</div>
                     <div className='text-lg font-mono font-semibold text-[#335c67]'>

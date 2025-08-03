@@ -233,8 +233,7 @@ export default function AgendaPage() {
 
     return (
         <div className='p-6'>
-            <div className='flex justify-between items-center mb-6'>
-                <h1 className='text-2xl font-bold'>Agenda</h1>
+            <div className='flex justify-end items-center mb-6'>
                 <Dialog
                     open={isCreateDialogOpen}
                     onOpenChange={setIsCreateDialogOpen}>

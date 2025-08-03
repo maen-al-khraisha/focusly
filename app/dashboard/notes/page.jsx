@@ -437,13 +437,7 @@ export default function Notes() {
 
     return (
         <div className='p-6 space-y-8'>
-            <div className='flex items-center justify-between'>
-                <div>
-                    <h2 className='text-2xl font-bold text-gray-900'>Notes</h2>
-                    <p className='text-gray-600'>
-                        Capture your thoughts and important information
-                    </p>
-                </div>
+            <div className='flex items-center justify-end'>
                 <div className='flex items-center gap-2'>
                     <Button
                         variant='outline'
