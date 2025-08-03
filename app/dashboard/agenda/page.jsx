@@ -409,7 +409,7 @@ export default function AgendaPage() {
                             {!collapsedSheets.has(sheet.id) && (
                                 <CardContent className='pt-0'>
                                     <div className='overflow-x-auto'>
-                                        <table className='w-full rounded-lg overflow-hidden'>
+                                        <table className='w-full border bg-gray-100 rounded-lg overflow-hidden'>
                                             <thead>
                                                 <tr
                                                     className='border-b'
@@ -453,7 +453,7 @@ export default function AgendaPage() {
                                                     sheet.rows.map((row) => (
                                                         <tr
                                                             key={row.id}
-                                                            className='border-b hover:bg-gray-50'>
+                                                            className='border-b '>
                                                             {sheet.columns?.map(
                                                                 (column) => {
                                                                     const cell =
