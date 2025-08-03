@@ -40,6 +40,8 @@ import {
     DollarSign,
     Hash,
     Clock,
+    ChevronDown,
+    ChevronRight,
 } from "lucide-react";
 
 const iconMap = {
@@ -63,6 +65,7 @@ export default function AgendaPage() {
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [isAddRowDialogOpen, setIsAddRowDialogOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [collapsedSheets, setCollapsedSheets] = useState(new Set());
     const [newSheet, setNewSheet] = useState({
         name: "",
         columns: [],
@@ -89,10 +92,7 @@ export default function AgendaPage() {
         try {
             const response = await axios.post("/api/agenda-sheets", newSheet);
             setSheets([response.data, ...sheets]);
-            setNewSheet({
-                name: "",
-                columns: [],
-            });
+            setNewSheet({ name: "", columns: [] });
             setIsCreateDialogOpen(false);
         } catch (error) {
             console.error("Error creating sheet:", error);
@@ -143,6 +143,16 @@ export default function AgendaPage() {
         } catch (error) {
             console.error("Error adding row:", error);
         }
+    };
+
+    const toggleSheetCollapse = (sheetId) => {
+        const newCollapsed = new Set(collapsedSheets);
+        if (newCollapsed.has(sheetId)) {
+            newCollapsed.delete(sheetId);
+        } else {
+            newCollapsed.add(sheetId);
+        }
+        setCollapsedSheets(newCollapsed);
     };
 
     const getIconComponent = (iconName) => {
@@ -294,177 +304,196 @@ export default function AgendaPage() {
                 </Dialog>
             </div>
 
-            {!selectedSheet ? (
-                <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
-                    {isLoading ? (
-                        <div className='col-span-full text-center py-8'>
-                            <p>Loading agenda sheets...</p>
-                        </div>
-                    ) : sheets.length === 0 ? (
-                        <div className='col-span-full text-center py-8'>
-                            <p className='text-gray-500'>
-                                No sheets created yet. Create your first sheet
-                                to get started!
-                            </p>
-                        </div>
-                    ) : (
-                        sheets.map((sheet) => (
-                            <Card
-                                key={sheet.id}
-                                className='cursor-pointer hover:shadow-md transition-shadow'>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2">
-                                        {getIconComponent(sheet.icon)}
-                                        {sheet.name}
-                                    </CardTitle>
-                                    <div className="flex gap-1">
-                                        <Badge variant="secondary">{sheet.columns?.length || 0} columns</Badge>
-                                        <Badge variant="outline">{sheet.rows?.length || 0} rows</Badge>
-                                    </div>
-                                </CardHeader>
-                                <CardContent>
-                                    <Button
-                                        onClick={() => setSelectedSheet(sheet)}
-                                        className='w-full'>
-                                        <Eye className='h-4 w-4 mr-2' />
-                                        View Sheet
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        ))
-                    )}
+            {isLoading ? (
+                <div className='text-center py-8'>
+                    <p>Loading agenda sheets...</p>
+                </div>
+            ) : sheets.length === 0 ? (
+                <div className='text-center py-8'>
+                    <p className='text-gray-500'>
+                        No sheets created yet. Create your first sheet to get
+                        started!
+                    </p>
                 </div>
             ) : (
-                <div>
-                    <div className='flex justify-between items-center mb-4'>
-                        <div className='flex items-center gap-2'>
-                            <Button
-                                variant='outline'
-                                onClick={() => setSelectedSheet(null)}>
-                                ← Back
-                            </Button>
-                            <h2 className='text-xl font-semibold flex items-center gap-2'>
-                                {getIconComponent(selectedSheet.icon)}
-                                {selectedSheet.name}
-                            </h2>
-                        </div>
-                        <Dialog
-                            open={isAddRowDialogOpen}
-                            onOpenChange={setIsAddRowDialogOpen}>
-                            <DialogTrigger asChild>
-                                <Button>
-                                    <Plus className='h-4 w-4 mr-2' />
+                <div className='space-y-4'>
+                    {sheets.map((sheet) => (
+                        <Card key={sheet.id}>
+                            <CardHeader className='pb-3'>
+                                <div className='flex items-center justify-between'>
+                                    <div className='flex items-center gap-2'>
+                                        <Button
+                                            variant='ghost'
+                                            size='sm'
+                                            onClick={() =>
+                                                toggleSheetCollapse(sheet.id)
+                                            }
+                                            className='p-1'>
+                                            {collapsedSheets.has(sheet.id) ? (
+                                                <ChevronRight className='h-4 w-4' />
+                                            ) : (
+                                                <ChevronDown className='h-4 w-4' />
+                                            )}
+                                        </Button>
+                                        <CardTitle className='flex items-center gap-2'>
+                                            {getIconComponent(sheet.icon)}
+                                            {sheet.name}
+                                        </CardTitle>
+                                        <div className='flex gap-1'>
+                                            <Badge variant='secondary'>
+                                                {sheet.columns?.length || 0}{" "}
+                                                columns
+                                            </Badge>
+                                            <Badge variant='outline'>
+                                                {sheet.rows?.length || 0} rows
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        onClick={() => setSelectedSheet(sheet)}
+                                        size='sm'>
+                                        <Plus className='h-4 w-4 mr-2' />
+                                        Add Row
+                                    </Button>
+                                </div>
+                            </CardHeader>
+                            {!collapsedSheets.has(sheet.id) && (
+                                <CardContent className='pt-0'>
+                                    <div className='overflow-x-auto'>
+                                        <table className='w-full'>
+                                            <thead>
+                                                <tr className='border-b'>
+                                                    {sheet.columns?.map(
+                                                        (column) => (
+                                                            <th
+                                                                key={column.id}
+                                                                className='text-left p-3 font-medium'>
+                                                                <div className='flex items-center gap-2'>
+                                                                    {getColumnTypeIcon(
+                                                                        column.type
+                                                                    )}
+                                                                    {
+                                                                        column.name
+                                                                    }
+                                                                </div>
+                                                            </th>
+                                                        )
+                                                    )}
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {sheet.rows?.length > 0 ? (
+                                                    sheet.rows.map((row) => (
+                                                        <tr
+                                                            key={row.id}
+                                                            className='border-b hover:bg-gray-50'>
+                                                            {sheet.columns?.map(
+                                                                (column) => {
+                                                                    const cell =
+                                                                        row.cells?.find(
+                                                                            (
+                                                                                c
+                                                                            ) =>
+                                                                                c.columnId ===
+                                                                                column.id
+                                                                        );
+                                                                    return (
+                                                                        <td
+                                                                            key={
+                                                                                column.id
+                                                                            }
+                                                                            className='p-3'>
+                                                                            {cell?.value ||
+                                                                                ""}
+                                                                        </td>
+                                                                    );
+                                                                }
+                                                            )}
+                                                        </tr>
+                                                    ))
+                                                ) : (
+                                                    <tr>
+                                                        <td
+                                                            colSpan={
+                                                                sheet.columns
+                                                                    ?.length ||
+                                                                1
+                                                            }
+                                                            className='p-4 text-center text-gray-500'>
+                                                            No data yet. Click
+                                                            "Add Row" to add
+                                                            your first entry.
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </CardContent>
+                            )}
+                        </Card>
+                    ))}
+                </div>
+            )}
+
+            {/* Add Row Dialog */}
+            {selectedSheet && (
+                <Dialog
+                    open={isAddRowDialogOpen}
+                    onOpenChange={setIsAddRowDialogOpen}>
+                    <DialogContent>
+                        <DialogHeader>
+                            <DialogTitle>
+                                Add New Row to {selectedSheet.name}
+                            </DialogTitle>
+                        </DialogHeader>
+                        <div className='space-y-4'>
+                            {selectedSheet.columns?.map((column) => (
+                                <div key={column.id}>
+                                    <label className='text-sm font-medium flex items-center gap-2'>
+                                        {getColumnTypeIcon(column.type)}
+                                        {column.name}
+                                        {column.required && (
+                                            <span className='text-red-500'>
+                                                *
+                                            </span>
+                                        )}
+                                    </label>
+                                    <Input
+                                        type={
+                                            column.type === "email"
+                                                ? "email"
+                                                : column.type === "number"
+                                                ? "number"
+                                                : "text"
+                                        }
+                                        value={newRow[column.id] || ""}
+                                        onChange={(e) =>
+                                            setNewRow({
+                                                ...newRow,
+                                                [column.id]: e.target.value,
+                                            })
+                                        }
+                                        placeholder={`Enter ${column.name.toLowerCase()}`}
+                                    />
+                                </div>
+                            ))}
+                            <div className='flex justify-end gap-2'>
+                                <Button
+                                    variant='outline'
+                                    onClick={() =>
+                                        setIsAddRowDialogOpen(false)
+                                    }>
+                                    Cancel
+                                </Button>
+                                <Button onClick={addRow}>
+                                    <Save className='h-4 w-4 mr-2' />
                                     Add Row
                                 </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>Add New Row</DialogTitle>
-                                </DialogHeader>
-                                <div className='space-y-4'>
-                                    {selectedSheet.columns?.map((column) => (
-                                        <div key={column.id}>
-                                            <label className='text-sm font-medium flex items-center gap-2'>
-                                                {getColumnTypeIcon(column.type)}
-                                                {column.name}
-                                                {column.required && (
-                                                    <span className='text-red-500'>
-                                                        *
-                                                    </span>
-                                                )}
-                                            </label>
-                                            <Input
-                                                type={
-                                                    column.type === "email"
-                                                        ? "email"
-                                                        : column.type ===
-                                                          "number"
-                                                        ? "number"
-                                                        : "text"
-                                                }
-                                                value={newRow[column.id] || ""}
-                                                onChange={(e) =>
-                                                    setNewRow({
-                                                        ...newRow,
-                                                        [column.id]:
-                                                            e.target.value,
-                                                    })
-                                                }
-                                                placeholder={`Enter ${column.name.toLowerCase()}`}
-                                            />
-                                        </div>
-                                    ))}
-                                    <div className='flex justify-end gap-2'>
-                                        <Button
-                                            variant='outline'
-                                            onClick={() =>
-                                                setIsAddRowDialogOpen(false)
-                                            }>
-                                            Cancel
-                                        </Button>
-                                        <Button onClick={addRow}>
-                                            <Save className='h-4 w-4 mr-2' />
-                                            Add Row
-                                        </Button>
-                                    </div>
-                                </div>
-                            </DialogContent>
-                        </Dialog>
-                    </div>
-
-                    <Card>
-                        <CardContent className='p-0'>
-                            <div className='overflow-x-auto'>
-                                <table className='w-full'>
-                                    <thead>
-                                        <tr className='border-b'>
-                                            {selectedSheet.columns?.map(
-                                                (column) => (
-                                                    <th
-                                                        key={column.id}
-                                                        className='text-left p-3 font-medium'>
-                                                        <div className='flex items-center gap-2'>
-                                                            {getColumnTypeIcon(
-                                                                column.type
-                                                            )}
-                                                            {column.name}
-                                                        </div>
-                                                    </th>
-                                                )
-                                            )}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {selectedSheet.rows?.map((row) => (
-                                            <tr
-                                                key={row.id}
-                                                className='border-b hover:bg-gray-50'>
-                                                {selectedSheet.columns?.map(
-                                                    (column) => {
-                                                        const cell =
-                                                            row.cells?.find(
-                                                                (c) =>
-                                                                    c.columnId ===
-                                                                    column.id
-                                                            );
-                                                        return (
-                                                            <td
-                                                                key={column.id}
-                                                                className='p-3'>
-                                                                {cell?.value ||
-                                                                    ""}
-                                                            </td>
-                                                        );
-                                                    }
-                                                )}
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
                             </div>
-                        </CardContent>
-                    </Card>
-                </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
             )}
         </div>
     );
