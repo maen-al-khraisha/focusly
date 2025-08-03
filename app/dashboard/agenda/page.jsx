@@ -322,31 +322,28 @@ export default function AgendaPage() {
                             <CardHeader className='pb-3'>
                                 <div className='flex items-center justify-between'>
                                     <div className='flex items-center gap-2'>
-                                        <Button
-                                            variant='ghost'
-                                            size='sm'
-                                            onClick={() =>
-                                                toggleSheetCollapse(sheet.id)
-                                            }
-                                            className='p-1'>
+                                        <div 
+                                            className='flex items-center gap-2 cursor-pointer hover:bg-gray-100 p-1 rounded'
+                                            onClick={() => toggleSheetCollapse(sheet.id)}
+                                        >
                                             {collapsedSheets.has(sheet.id) ? (
                                                 <ChevronRight className='h-4 w-4' />
                                             ) : (
                                                 <ChevronDown className='h-4 w-4' />
                                             )}
-                                        </Button>
-                                        <CardTitle className='flex items-center gap-2'>
-                                            {getIconComponent(sheet.icon)}
-                                            {sheet.name}
-                                        </CardTitle>
-                                        <div className='flex gap-1'>
-                                            <Badge variant='secondary'>
-                                                {sheet.columns?.length || 0}{" "}
-                                                columns
-                                            </Badge>
-                                            <Badge variant='outline'>
-                                                {sheet.rows?.length || 0} rows
-                                            </Badge>
+                                            <CardTitle className='flex items-center gap-2'>
+                                                {getIconComponent(sheet.icon)}
+                                                {sheet.name}
+                                            </CardTitle>
+                                            <div className='flex gap-1'>
+                                                <Badge variant='secondary'>
+                                                    {sheet.columns?.length || 0}{" "}
+                                                    columns
+                                                </Badge>
+                                                <Badge variant='outline'>
+                                                    {sheet.rows?.length || 0} rows
+                                                </Badge>
+                                            </div>
                                         </div>
                                     </div>
                                     <Button
