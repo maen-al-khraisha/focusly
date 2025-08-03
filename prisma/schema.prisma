@@ -92,3 +92,52 @@ model HabitDay {
 
   @@unique([habitId, day])
 }
+
+// Agenda Models
+model AgendaSheet {
+  id          Int           @id @default(autoincrement())
+  name        String
+  description String?
+  icon        String        @default("FileText")
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  columns     AgendaColumn[]
+  rows        AgendaRow[]
+}
+
+model AgendaColumn {
+  id           Int         @id @default(autoincrement())
+  sheetId      Int
+  name         String
+  type         String      @default("text") // text, number, email, url, date, etc.
+  order        Int         @default(0)
+  required     Boolean     @default(false)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  sheet        AgendaSheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+  cellValues   AgendaCell[]
+
+  @@unique([sheetId, name])
+}
+
+model AgendaRow {
+  id        Int         @id @default(autoincrement())
+  sheetId   Int
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  sheet     AgendaSheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+  cells     AgendaCell[]
+}
+
+model AgendaCell {
+  id       Int          @id @default(autoincrement())
+  rowId    Int
+  columnId Int
+  value    String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  row      AgendaRow    @relation(fields: [rowId], references: [id], onDelete: Cascade)
+  column   AgendaColumn @relation(fields: [columnId], references: [id], onDelete: Cascade)
+
+  @@unique([rowId, columnId])
+}
