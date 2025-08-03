@@ -362,7 +362,8 @@ export default function AgendaPage() {
                                                         (column) => (
                                                             <th
                                                                 key={column.id}
-                                                                className='text-left p-3 font-medium'>
+                                                                className='text-left p-3 font-bold'
+                                                                style={{ color: '#335c67' }}>
                                                                 <div className='flex items-center gap-2'>
                                                                     {getColumnTypeIcon(
                                                                         column.type
