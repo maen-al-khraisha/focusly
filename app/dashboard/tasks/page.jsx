@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { getStatusColors, getStatusText } from "../../../lib/utils.js";
 import {
     Dialog,
     DialogContent,
@@ -15,59 +14,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
 import {
     Play,
     Pause,
     Check,
     Trash2,
-    RotateCcw,
+    Plus,
     ChevronDown,
     ChevronRight,
-    Target,
-    Clock,
-    Edit,
-    Plus,
-    FolderOpen,
-    Settings,
-    Heart,
-    Dumbbell,
-    BookOpen,
-    Coffee,
-    Brain,
-    Music,
-    Camera,
-    Palette,
-    Code,
-    Globe,
-    Home,
-    Car,
-    Plane,
-    Gamepad2,
-    Utensils,
-    ShoppingBag,
-    Gift,
-    Star,
-    Zap,
-    Moon,
-    Sun,
-    Cloud,
-    Leaf,
 } from "lucide-react";
 
 function formatTime(seconds) {
@@ -82,195 +37,398 @@ function formatTime(seconds) {
 }
 
 export default function TasksPage() {
-    const [activeTab, setActiveTab] = useState("active");
+    const [activeTab, setActiveTab] = useState("active"); // "active" or "history"
     const [tasks, setTasks] = useState([]);
-    const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [newTask, setNewTask] = useState({
-        title: "",
-        description: "",
-        icon: "Target",
-        categoryId: null,
-    });
+    const [newTask, setNewTask] = useState({ title: "", description: "" });
     const [adding, setAdding] = useState(false);
+    const [timers, setTimers] = useState({});
+    const [elapsed, setElapsed] = useState({});
+    const [todayWork, setTodayWork] = useState({});
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+    // Work history state
+    const [historyFilter, setHistoryFilter] = useState("daily"); // "daily", "weekly", "monthly"
+    const [workHistory, setWorkHistory] = useState([]);
+    const [historyLoading, setHistoryLoading] = useState(false);
+    const [showReport, setShowReport] = useState(false);
+    const [collapsedDays, setCollapsedDays] = useState({});
+    const [editingTitleId, setEditingTitleId] = useState(null);
+    const [editingDescId, setEditingDescId] = useState(null);
+    const [editTitle, setEditTitle] = useState("");
+    const [editDesc, setEditDesc] = useState("");
 
-    // Category management state
-    const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
-    const [isEditCategoryDialogOpen, setIsEditCategoryDialogOpen] =
-        useState(false);
-    const [editingCategory, setEditingCategory] = useState(null);
-    const [newCategory, setNewCategory] = useState({
-        name: "",
-        icon: "FolderOpen",
-    });
-    const [collapsedCategories, setCollapsedCategories] = useState({});
+    useEffect(() => {
+        fetchTasks();
+        fetchTodayWork();
+    }, []);
 
-    // Icon map for category selection
-    const iconMap = {
-        FolderOpen,
-        Target,
-        Clock,
-        Edit,
-        Plus,
-        Heart,
-        Dumbbell,
-        BookOpen,
-        Coffee,
-        Brain,
-        Music,
-        Camera,
-        Palette,
-        Code,
-        Globe,
-        Home,
-        Car,
-        Plane,
-        Gamepad2,
-        Utensils,
-        ShoppingBag,
-        Gift,
-        Star,
-        Zap,
-        Moon,
-        Sun,
-        Cloud,
-        Leaf,
-        Settings,
-    };
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setElapsed((prev) => {
+                const updated = { ...prev };
+                Object.keys(timers).forEach((taskId) => {
+                    updated[taskId] = Math.floor(
+                        (Date.now() - timers[taskId]) / 1000
+                    );
+                });
+                return updated;
+            });
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [timers]);
+
+    useEffect(() => {
+        fetchWorkHistory();
+    }, [historyFilter]);
 
     const fetchTasks = async () => {
         setLoading(true);
         try {
-            const [tasksRes, categoriesRes] = await Promise.all([
-                axios.get("/api/tasks"),
-                axios.get("/api/task-categories"),
-            ]);
-            setTasks(tasksRes.data);
-            setCategories(categoriesRes.data);
+            const res = await axios.get("/api/tasks");
+            setTasks(res.data);
         } catch (err) {
             setError("Failed to load tasks");
         }
         setLoading(false);
     };
 
+    const fetchTodayWork = async () => {
+        const today = new Date().toISOString().split("T")[0];
+        try {
+            const res = await axios.get(
+                `/api/daily-work?startDate=${today}&endDate=${today}`
+            );
+            console.log("Today's work response:", res.data);
+            const map = {};
+            res.data.forEach((dw) => {
+                map[dw.taskId] = dw.totalTime;
+            });
+            setTodayWork(map);
+        } catch (error) {
+            console.error("Error fetching today's work:", error);
+        }
+    };
+
+    const fetchWorkHistory = async () => {
+        setHistoryLoading(true);
+        try {
+            const today = new Date();
+            let startDate, endDate;
+
+            switch (historyFilter) {
+                case "daily":
+                    startDate = new Date(today);
+                    endDate = new Date(today);
+                    break;
+                case "weekly":
+                    // Get the start of the week (Sunday)
+                    startDate = new Date(today);
+                    const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, etc.
+                    startDate.setDate(today.getDate() - dayOfWeek);
+
+                    // Get the end of the week (Saturday)
+                    endDate = new Date(startDate);
+                    endDate.setDate(startDate.getDate() + 6);
+                    break;
+                case "monthly":
+                    // Get the start of the month (1st day)
+                    startDate = new Date(
+                        today.getFullYear(),
+                        today.getMonth(),
+                        1
+                    );
+
+                    // Get the end of the month (last day)
+                    endDate = new Date(
+                        today.getFullYear(),
+                        today.getMonth() + 1,
+                        0
+                    );
+                    break;
+                default:
+                    startDate = new Date(today);
+                    endDate = new Date(today);
+            }
+
+            const startDateStr = startDate.toISOString().split("T")[0];
+            const endDateStr = endDate.toISOString().split("T")[0];
+            console.log(
+                "Fetching work history for dates:",
+                startDateStr,
+                "to",
+                endDateStr
+            );
+            const params = new URLSearchParams({
+                startDate: startDateStr,
+                endDate: endDateStr,
+            });
+            const res = await axios.get(`/api/work-history?${params}`);
+            console.log("Work history response:", res.data);
+            setWorkHistory(res.data);
+        } catch (error) {
+            console.error("Error fetching work history:", error);
+            setWorkHistory([]);
+        }
+        setHistoryLoading(false);
+    };
+
     const handleAddTask = async (e) => {
         e.preventDefault();
         if (!newTask.title.trim()) return;
-
         setAdding(true);
         try {
-            const response = await axios.post("/api/tasks", {
-                title: newTask.title,
-                description: newTask.description,
-                icon: newTask.icon,
-                categoryId: newTask.categoryId,
-            });
-            setTasks([response.data, ...tasks]);
-            setNewTask({
-                title: "",
-                description: "",
-                icon: "Target",
-                categoryId: null,
-            });
+            const res = await axios.post("/api/tasks", newTask);
+            setTasks([res.data, ...tasks]);
+            setNewTask({ title: "", description: "" });
             setIsAddDialogOpen(false);
-        } catch (error) {
-            console.error("Error adding task:", error);
-        } finally {
-            setAdding(false);
+        } catch (err) {
+            setError("Failed to add task");
         }
+        setAdding(false);
     };
 
-    // Category management functions
-    const handleAddCategory = async () => {
-        if (newCategory.name.trim()) {
-            try {
-                const response = await axios.post(
-                    "/api/task-categories",
-                    newCategory
-                );
-                setCategories([...categories, response.data]);
-                setNewCategory({ name: "", icon: "FolderOpen" });
-            } catch (error) {
-                console.error("Error creating category:", error);
-            }
+    const handleStart = (taskId) => {
+        setTimers((prev) => ({ ...prev, [taskId]: Date.now() }));
+        setElapsed((prev) => ({ ...prev, [taskId]: 0 }));
+    };
+
+    const handleStop = async (taskId) => {
+        const seconds = elapsed[taskId] || 0;
+        if (seconds > 0) {
+            const today = new Date().toISOString().split("T")[0];
+            await axios.post("/api/daily-work", {
+                taskId,
+                date: today,
+                totalTime: seconds,
+            });
+            fetchTodayWork();
+            fetchWorkHistory();
         }
+        setTimers((prev) => {
+            const updated = { ...prev };
+            delete updated[taskId];
+            return updated;
+        });
+        setElapsed((prev) => {
+            const updated = { ...prev };
+            updated[taskId] = 0;
+            return updated;
+        });
     };
 
-    const handleEditCategory = (category) => {
-        setEditingCategory(category);
-        setIsEditCategoryDialogOpen(true);
-    };
-
-    const handleUpdateCategory = async () => {
-        if (editingCategory?.name?.trim()) {
-            try {
-                const response = await axios.put(
-                    `/api/task-categories/${editingCategory.id}`,
-                    {
-                        name: editingCategory.name,
-                        icon: editingCategory.icon,
-                    }
-                );
-                setCategories(
-                    categories.map((cat) =>
-                        cat.id === editingCategory.id ? response.data : cat
-                    )
-                );
-                setEditingCategory(null);
-                setIsEditCategoryDialogOpen(false);
-            } catch (error) {
-                console.error("Error updating category:", error);
-            }
-        }
-    };
-
-    const handleDeleteCategory = async (categoryId) => {
+    const handleDeleteTask = async (taskId) => {
+        if (!window.confirm("Are you sure you want to delete this task?"))
+            return;
         try {
-            await axios.delete(`/api/task-categories/${categoryId}`);
-            setCategories(categories.filter((cat) => cat.id !== categoryId));
-            setTasks(
-                tasks.map((task) =>
-                    task.categoryId === categoryId
-                        ? { ...task, categoryId: null, category: null }
-                        : task
-                )
-            );
-        } catch (error) {
-            console.error("Error deleting category:", error);
+            await axios.delete(`/api/tasks/${taskId}`);
+            setTasks((tasks) => tasks.filter((t) => t.id !== taskId));
+            fetchWorkHistory();
+        } catch (err) {
+            setError("Failed to delete task");
         }
     };
 
-    const toggleCategory = (categoryName) => {
-        setCollapsedCategories((prev) => ({
+    const handleEditTitleClick = (task) => {
+        setEditingTitleId(task.id);
+        setEditTitle(task.title);
+    };
+    const handleEditDescClick = (task) => {
+        setEditingDescId(task.id);
+        setEditDesc(task.description || "");
+    };
+    const handleEditTitleSave = async (taskId) => {
+        try {
+            const res = await axios.put(`/api/tasks/${taskId}`, {
+                title: editTitle,
+                description:
+                    tasks.find((t) => t.id === taskId)?.description || "",
+                status: tasks.find((t) => t.id === taskId)?.status || "active",
+                icon: tasks.find((t) => t.id === taskId)?.icon || "Target",
+                categoryId:
+                    tasks.find((t) => t.id === taskId)?.categoryId || null,
+            });
+            setTasks((tasks) =>
+                tasks.map((t) => (t.id === taskId ? res.data : t))
+            );
+            fetchWorkHistory();
+        } catch (err) {
+            console.error("Error updating task title:", err);
+            setError("Failed to update task");
+        }
+        setEditingTitleId(null);
+    };
+    const handleEditDescSave = async (taskId) => {
+        try {
+            const res = await axios.put(`/api/tasks/${taskId}`, {
+                title: tasks.find((t) => t.id === taskId)?.title || "",
+                description: editDesc,
+                status: tasks.find((t) => t.id === taskId)?.status || "active",
+                icon: tasks.find((t) => t.id === taskId)?.icon || "Target",
+                categoryId:
+                    tasks.find((t) => t.id === taskId)?.categoryId || null,
+            });
+            setTasks((tasks) =>
+                tasks.map((t) => (t.id === taskId ? res.data : t))
+            );
+            fetchWorkHistory();
+        } catch (err) {
+            console.error("Error updating task description:", err);
+            setError("Failed to update task");
+        }
+        setEditingDescId(null);
+    };
+    const handleEditTitleKeyDown = (e, taskId) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            handleEditTitleSave(taskId);
+        } else if (e.key === "Escape") {
+            setEditingTitleId(null);
+        }
+    };
+    const handleEditDescKeyDown = (e, taskId) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            handleEditDescSave(taskId);
+        } else if (e.key === "Escape") {
+            setEditingDescId(null);
+        }
+    };
+
+    // Only show incomplete tasks in the main list
+    const activeTasks = tasks.filter((t) => t.status !== "completed");
+    // Add complete/reopen handlers
+    const handleCompleteTask = async (taskId) => {
+        try {
+            const res = await axios.put(`/api/tasks/${taskId}`, {
+                status: "completed",
+            });
+            setTasks((tasks) =>
+                tasks.map((t) => (t.id === taskId ? res.data : t))
+            );
+            fetchWorkHistory();
+        } catch (err) {
+            setError("Failed to complete task");
+        }
+    };
+    const handleReopenTask = async (taskId) => {
+        try {
+            const res = await axios.put(`/api/tasks/${taskId}`, {
+                status: "active",
+            });
+            setTasks((tasks) =>
+                tasks.map((t) => (t.id === taskId ? res.data : t))
+            );
+            fetchWorkHistory();
+        } catch (err) {
+            setError("Failed to reopen task");
+        }
+    };
+
+    // Calculate total time in history, including running timers for today
+    const todayStr = new Date().toISOString().split("T")[0];
+    const runningTimeMap = {};
+    Object.entries(timers).forEach(([taskId, start]) => {
+        // Find if this task has a workHistory entry for today
+        const wh = workHistory.find(
+            (w) => w.taskId === Number(taskId) && w.date.startsWith(todayStr)
+        );
+        const elapsedSec = elapsed[taskId] || 0;
+        if (wh) {
+            runningTimeMap[wh.id] = elapsedSec;
+        } else {
+            // If no entry, add a pseudo-entry for today
+            runningTimeMap[`new-${taskId}`] = elapsedSec;
+        }
+    });
+    const totalHistoryTime =
+        workHistory.reduce((sum, w) => {
+            let extra = 0;
+            if (w.date.startsWith(todayStr) && runningTimeMap[w.id]) {
+                extra = runningTimeMap[w.id];
+            }
+            return sum + w.totalTime + extra;
+        }, 0) +
+        Object.entries(runningTimeMap)
+            .filter(([k]) => k.startsWith("new-"))
+            .reduce((sum, [k, v]) => sum + v, 0);
+
+    // Group work history by day for the report
+    const dailyReport = workHistory.reduce((acc, work) => {
+        const date = work.date.split("T")[0];
+        if (!acc[date]) {
+            acc[date] = {
+                date: date,
+                totalTime: 0,
+                tasks: [],
+            };
+        }
+        acc[date].totalTime += work.totalTime;
+        acc[date].tasks.push(work);
+        return acc;
+    }, {});
+
+    // Add running timers to today's report
+    if (Object.keys(runningTimeMap).length > 0) {
+        if (!dailyReport[todayStr]) {
+            dailyReport[todayStr] = {
+                date: todayStr,
+                totalTime: 0,
+                tasks: [],
+            };
+        }
+        Object.entries(runningTimeMap).forEach(([key, time]) => {
+            if (key.startsWith("new-")) {
+                const taskId = Number(key.replace("new-", ""));
+                const task = tasks.find((t) => t.id === taskId);
+                if (task) {
+                    dailyReport[todayStr].tasks.push({
+                        id: key,
+                        taskId: taskId,
+                        date: todayStr,
+                        totalTime: time,
+                        task: task,
+                    });
+                    dailyReport[todayStr].totalTime += time;
+                }
+            }
+        });
+    }
+
+    const toggleDayCollapse = (date) => {
+        setCollapsedDays((prev) => ({
             ...prev,
-            [categoryName]: !prev[categoryName],
+            [date]: !prev[date],
         }));
     };
 
-    const groupTasksByCategory = () => {
-        const grouped = {};
-        tasks.forEach((task) => {
-            const categoryName = task.category?.name || "Uncategorized";
-            if (!grouped[categoryName]) {
-                grouped[categoryName] = [];
-            }
-            grouped[categoryName].push(task);
-        });
-        return grouped;
-    };
-
-    const activeTasks = tasks.filter((task) => task.status !== "completed");
-
+    // When showReport changes to true, collapse all days
     useEffect(() => {
-        fetchTasks();
-    }, []);
+        if (showReport && workHistory.length > 0) {
+            const allDates = Object.keys(dailyReport);
+            const collapsedState = {};
+            allDates.forEach((date) => {
+                collapsedState[date] = true; // true means collapsed
+            });
+            setCollapsedDays(collapsedState);
+        }
+    }, [showReport, workHistory.length]);
+
+    // Calculate today's total work time
+    const todayTotalTime =
+        Object.values(todayWork).reduce((sum, time) => sum + time, 0) +
+        Object.values(elapsed).reduce((sum, time) => sum + time, 0);
 
     return (
-        <div className='p-6 space-y-8'>
+        <div className=' p-6 space-y-8'>
             <div className='flex justify-between items-center mb-4'>
                 <h1 className='text-2xl font-bold'>Tasks</h1>
+                <div className='text-right'>
+                    <div className='text-sm text-gray-600'>Today's Work</div>
+                    <div className='text-lg font-mono font-semibold text-[#335c67]'>
+                        {formatTime(todayTotalTime)}
+                    </div>
+                </div>
             </div>
 
             {/* Tab Navigation */}
@@ -284,6 +442,15 @@ export default function TasksPage() {
                     }`}>
                     Active Tasks
                 </button>
+                <button
+                    onClick={() => setActiveTab("history")}
+                    className={`px-4 py-2 font-medium text-sm border-b-2 transition-colors ${
+                        activeTab === "history"
+                            ? "border-[#335c67] text-[#335c67]"
+                            : "border-transparent text-gray-500 hover:text-gray-700"
+                    }`}>
+                    Work History
+                </button>
             </div>
 
             {/* Active Tasks Tab */}
@@ -291,345 +458,83 @@ export default function TasksPage() {
                 <div className='space-y-6'>
                     <div className='flex justify-between items-center mb-6'>
                         <h2 className='text-xl font-semibold'>Active Tasks</h2>
-                        <div className='flex items-center gap-3'>
-                            <Dialog
-                                open={isCategoryDialogOpen}
-                                onOpenChange={setIsCategoryDialogOpen}>
-                                <DialogTrigger asChild>
-                                    <Button variant='outline'>
-                                        <Settings className='mr-2 h-4 w-4' />
-                                        Manage Categories
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent className='max-w-4xl'>
-                                    <DialogHeader>
-                                        <DialogTitle>
-                                            Manage Categories
-                                        </DialogTitle>
-                                        <DialogDescription>
-                                            Create, edit, and delete categories
-                                            to organize your tasks.
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                    <div className='space-y-6'>
-                                        {/* Add New Category Section */}
-                                        <div className='space-y-4'>
-                                            <h3 className='text-lg font-semibold'>
-                                                Add New Category
-                                            </h3>
-                                            <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-                                                <div className='space-y-2'>
-                                                    <Label htmlFor='new-category-name'>
-                                                        Category Name
-                                                    </Label>
-                                                    <Input
-                                                        id='new-category-name'
-                                                        placeholder='Enter category name'
-                                                        value={newCategory.name}
-                                                        onChange={(e) =>
-                                                            setNewCategory({
-                                                                ...newCategory,
-                                                                name: e.target
-                                                                    .value,
-                                                            })
-                                                        }
-                                                    />
-                                                </div>
-                                                <div className='space-y-2'>
-                                                    <Label>Category Icon</Label>
-                                                    <div className='grid grid-cols-8 gap-2 max-h-40 overflow-y-auto border rounded-lg p-3'>
-                                                        {Object.entries(
-                                                            iconMap
-                                                        ).map(
-                                                            ([
-                                                                iconName,
-                                                                IconComponent,
-                                                            ]) => (
-                                                                <button
-                                                                    key={
-                                                                        iconName
-                                                                    }
-                                                                    onClick={() =>
-                                                                        setNewCategory(
-                                                                            {
-                                                                                ...newCategory,
-                                                                                icon: iconName,
-                                                                            }
-                                                                        )
-                                                                    }
-                                                                    className={`p-2 rounded-lg border-2 transition-colors ${
-                                                                        newCategory.icon ===
-                                                                        iconName
-                                                                            ? "border-blue-500 bg-blue-50"
-                                                                            : "border-gray-200 hover:border-gray-300"
-                                                                    }`}>
-                                                                    <IconComponent className='h-4 w-4' />
-                                                                </button>
-                                                            )
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <Button
-                                                onClick={handleAddCategory}
-                                                disabled={
-                                                    !newCategory.name.trim()
-                                                }
-                                                className='w-full md:w-auto'>
-                                                <Plus className='mr-2 h-4 w-4' />
-                                                Add Category
-                                            </Button>
-                                        </div>
-
-                                        {/* Existing Categories Section */}
-                                        <div className='space-y-4'>
-                                            <h3 className='text-lg font-semibold'>
-                                                Existing Categories
-                                            </h3>
-                                            {categories.length === 0 ? (
-                                                <div className='text-center py-8 text-gray-500'>
-                                                    <FolderOpen className='mx-auto h-12 w-12 text-gray-300 mb-2' />
-                                                    <p>No categories yet</p>
-                                                    <p className='text-sm'>
-                                                        Create your first
-                                                        category above
-                                                    </p>
-                                                </div>
-                                            ) : (
-                                                <div className='grid gap-3'>
-                                                    {categories.map(
-                                                        (category) => {
-                                                            const CategoryIcon =
-                                                                iconMap[
-                                                                    category
-                                                                        .icon
-                                                                ] || FolderOpen;
-                                                            return (
-                                                                <div
-                                                                    key={
-                                                                        category.id
-                                                                    }
-                                                                    className='flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors'>
-                                                                    <div className='flex items-center space-x-3'>
-                                                                        <div className='w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center'>
-                                                                            <CategoryIcon className='h-4 w-4 text-blue-600' />
-                                                                        </div>
-                                                                        <div>
-                                                                            <h4 className='font-medium'>
-                                                                                {
-                                                                                    category.name
-                                                                                }
-                                                                            </h4>
-                                                                            <p className='text-sm text-gray-500'>
-                                                                                {
-                                                                                    tasks.filter(
-                                                                                        (
-                                                                                            task
-                                                                                        ) =>
-                                                                                            task.categoryId ===
-                                                                                            category.id
-                                                                                    )
-                                                                                        .length
-                                                                                }{" "}
-                                                                                tasks
-                                                                            </p>
-                                                                        </div>
-                                                                    </div>
-                                                                    <div className='flex items-center space-x-2'>
-                                                                        <Button
-                                                                            variant='ghost'
-                                                                            size='sm'
-                                                                            onClick={() =>
-                                                                                handleEditCategory(
-                                                                                    category
-                                                                                )
-                                                                            }
-                                                                            className='h-8 w-8 p-0'
-                                                                            title='Edit Category'>
-                                                                            <Edit className='h-4 w-4' />
-                                                                        </Button>
-                                                                        <Button
-                                                                            variant='ghost'
-                                                                            size='sm'
-                                                                            onClick={() =>
-                                                                                handleDeleteCategory(
-                                                                                    category.id
-                                                                                )
-                                                                            }
-                                                                            className='h-8 w-8 p-0 text-red-600 hover:text-red-700'
-                                                                            title='Delete Category'>
-                                                                            <Trash2 className='h-4 w-4' />
-                                                                        </Button>
-                                                                    </div>
-                                                                </div>
-                                                            );
-                                                        }
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
+                        <Dialog
+                            open={isAddDialogOpen}
+                            onOpenChange={setIsAddDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button className='bg-[#335c67] text-[#fff3b0] hover:bg-[#284952] flex items-center gap-2'>
+                                    <Plus className='h-4 w-4' />
+                                    Add Task
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Add New Task</DialogTitle>
+                                    <DialogDescription>
+                                        Create a new task to track your work.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <form
+                                    onSubmit={handleAddTask}
+                                    className='space-y-4'>
+                                    <div className='space-y-2'>
+                                        <label
+                                            htmlFor='title'
+                                            className='text-sm font-medium'>
+                                            Task Title *
+                                        </label>
+                                        <Input
+                                            id='title'
+                                            placeholder='Enter task title'
+                                            value={newTask.title}
+                                            onChange={(e) =>
+                                                setNewTask({
+                                                    ...newTask,
+                                                    title: e.target.value,
+                                                })
+                                            }
+                                            required
+                                        />
+                                    </div>
+                                    <div className='space-y-2'>
+                                        <label
+                                            htmlFor='description'
+                                            className='text-sm font-medium'>
+                                            Description (optional)
+                                        </label>
+                                        <Textarea
+                                            id='description'
+                                            placeholder='Enter task description'
+                                            value={newTask.description}
+                                            onChange={(e) =>
+                                                setNewTask({
+                                                    ...newTask,
+                                                    description: e.target.value,
+                                                })
+                                            }
+                                        />
                                     </div>
                                     <DialogFooter>
                                         <Button
+                                            type='button'
                                             variant='outline'
-                                            onClick={() => {
-                                                setIsCategoryDialogOpen(false);
-                                                setNewCategory({
-                                                    name: "",
-                                                    icon: "FolderOpen",
-                                                });
-                                            }}>
-                                            Close
+                                            onClick={() =>
+                                                setIsAddDialogOpen(false)
+                                            }>
+                                            Cancel
+                                        </Button>
+                                        <Button
+                                            type='submit'
+                                            disabled={
+                                                !newTask.title.trim() || adding
+                                            }
+                                            className='bg-[#335c67] text-[#fff3b0] hover:bg-[#284952]'>
+                                            Add Task
                                         </Button>
                                     </DialogFooter>
-                                </DialogContent>
-                            </Dialog>
-                            <Dialog
-                                open={isAddDialogOpen}
-                                onOpenChange={setIsAddDialogOpen}>
-                                <DialogTrigger asChild>
-                                    <Button
-                                        className='bg-[#335c67] text-[#fff3b0] hover:bg-[#284952] flex items-center gap-2'
-                                        onClick={() =>
-                                            setIsAddDialogOpen(true)
-                                        }>
-                                        <span className='text-xl font-bold'>
-                                            +
-                                        </span>
-                                        Add Task
-                                    </Button>
-                                </DialogTrigger>
-                                <DialogContent>
-                                    <DialogHeader>
-                                        <DialogTitle>Add New Task</DialogTitle>
-                                        <DialogDescription>
-                                            Create a new task to track your
-                                            work.
-                                        </DialogDescription>
-                                    </DialogHeader>
-                                    <div className='space-y-4'>
-                                        <div className='space-y-2'>
-                                            <label
-                                                htmlFor='title'
-                                                className='text-sm font-medium'>
-                                                Task Title *
-                                            </label>
-                                            <Input
-                                                id='title'
-                                                placeholder='Enter task title'
-                                                value={newTask.title}
-                                                onChange={(e) =>
-                                                    setNewTask({
-                                                        ...newTask,
-                                                        title: e.target.value,
-                                                    })
-                                                }
-                                                required
-                                            />
-                                        </div>
-                                        <div className='space-y-2'>
-                                            <label
-                                                htmlFor='description'
-                                                className='text-sm font-medium'>
-                                                Description (optional)
-                                            </label>
-                                            <Textarea
-                                                id='description'
-                                                placeholder='Enter task description'
-                                                value={newTask.description}
-                                                onChange={(e) =>
-                                                    setNewTask({
-                                                        ...newTask,
-                                                        description:
-                                                            e.target.value,
-                                                    })
-                                                }
-                                            />
-                                        </div>
-                                        <div className='space-y-2'>
-                                            <label
-                                                htmlFor='category'
-                                                className='text-sm font-medium'>
-                                                Category (optional)
-                                            </label>
-                                            <Select
-                                                value={
-                                                    newTask.categoryId?.toString() ||
-                                                    ""
-                                                }
-                                                onValueChange={(value) =>
-                                                    setNewTask({
-                                                        ...newTask,
-                                                        categoryId: value
-                                                            ? parseInt(value)
-                                                            : null,
-                                                    })
-                                                }>
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder='Select a category' />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value=''>
-                                                        No Category
-                                                    </SelectItem>
-                                                    {categories.map(
-                                                        (category) => (
-                                                            <SelectItem
-                                                                key={
-                                                                    category.id
-                                                                }
-                                                                value={category.id.toString()}>
-                                                                <div className='flex items-center space-x-2'>
-                                                                    {(() => {
-                                                                        const IconComponent =
-                                                                            iconMap[
-                                                                                category
-                                                                                    .icon
-                                                                            ];
-                                                                        return IconComponent ? (
-                                                                            <IconComponent className='h-4 w-4' />
-                                                                        ) : null;
-                                                                    })()}
-                                                                    <span>
-                                                                        {
-                                                                            category.name
-                                                                        }
-                                                                    </span>
-                                                                </div>
-                                                            </SelectItem>
-                                                        )
-                                                    )}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
-                                        <DialogFooter>
-                                            <Button
-                                                type='button'
-                                                variant='outline'
-                                                onClick={() =>
-                                                    setIsAddDialogOpen(false)
-                                                }>
-                                                Cancel
-                                            </Button>
-                                            <Button
-                                                type='button'
-                                                onClick={() => {
-                                                    if (newTask.title.trim()) {
-                                                        handleAddTask({
-                                                            preventDefault:
-                                                                () => {},
-                                                        });
-                                                    }
-                                                }}
-                                                disabled={!newTask.title.trim()}
-                                                className='bg-[#335c67] text-[#fff3b0] hover:bg-[#284952]'>
-                                                Add Task
-                                            </Button>
-                                        </DialogFooter>
-                                    </div>
-                                </DialogContent>
-                            </Dialog>
-                        </div>
+                                </form>
+                            </DialogContent>
+                        </Dialog>
                     </div>
                     {loading ? (
                         <div>Loading tasks...</div>
@@ -644,201 +549,458 @@ export default function TasksPage() {
                             </p>
                         </div>
                     ) : (
-                        <div className='space-y-6'>
-                            {Object.entries(groupTasksByCategory()).map(
-                                ([categoryName, categoryTasks]) => (
-                                    <div
-                                        key={categoryName}
-                                        className='space-y-4'>
-                                        <div className='flex items-center justify-between'>
-                                            <button
-                                                onClick={() =>
-                                                    toggleCategory(categoryName)
-                                                }
-                                                className='flex items-center gap-2 text-lg font-semibold text-gray-900 hover:text-gray-700 transition-colors'>
-                                                {collapsedCategories[
-                                                    categoryName
-                                                ] ? (
-                                                    <ChevronRight className='h-5 w-5' />
-                                                ) : (
-                                                    <ChevronDown className='h-5 w-5' />
-                                                )}
-                                                {categoryName !==
-                                                    "Uncategorized" &&
-                                                    categories.find(
-                                                        (cat) =>
-                                                            cat.name ===
-                                                            categoryName
-                                                    ) &&
-                                                    (() => {
-                                                        const CategoryIcon =
-                                                            iconMap[
-                                                                categories.find(
-                                                                    (cat) =>
-                                                                        cat.name ===
-                                                                        categoryName
-                                                                )?.icon
-                                                            ] || FolderOpen;
-                                                        return (
-                                                            <CategoryIcon className='h-5 w-5 text-blue-600' />
-                                                        );
-                                                    })()}
-                                                {categoryName}
-                                                <Badge
-                                                    variant='secondary'
-                                                    className='ml-2'>
-                                                    {categoryTasks.length} tasks
-                                                </Badge>
-                                            </button>
+                        <ul className='space-y-4'>
+                            {activeTasks.map((task) => (
+                                <li
+                                    key={task.id}
+                                    className='border rounded p-4 bg-white shadow flex flex-col gap-2'>
+                                    {editingTitleId === task.id ? (
+                                        <input
+                                            name='title'
+                                            className='border-b font-semibold text-lg w-full mb-1'
+                                            value={editTitle}
+                                            onChange={(e) =>
+                                                setEditTitle(e.target.value)
+                                            }
+                                            onBlur={() =>
+                                                handleEditTitleSave(task.id)
+                                            }
+                                            onKeyDown={(e) =>
+                                                handleEditTitleKeyDown(
+                                                    e,
+                                                    task.id
+                                                )
+                                            }
+                                            autoFocus
+                                        />
+                                    ) : (
+                                        <div
+                                            className='font-semibold text-lg cursor-pointer hover:underline'
+                                            onClick={() =>
+                                                handleEditTitleClick(task)
+                                            }
+                                            title='Click to edit'>
+                                            {task.title}
                                         </div>
-                                        {!collapsedCategories[categoryName] && (
-                                            <div className='space-y-4'>
-                                                {categoryTasks.map((task) => (
-                                                    <Card
-                                                        key={task.id}
-                                                        className='hover:shadow-md transition-shadow'>
-                                                        <CardHeader>
-                                                            <div className='flex items-center justify-between'>
-                                                                <div className='flex items-center space-x-3'>
-                                                                    <div className='w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center'>
-                                                                        {(() => {
-                                                                            const iconMap =
-                                                                                {
-                                                                                    Target,
-                                                                                    Clock,
-                                                                                    Edit,
-                                                                                    Check,
-                                                                                    Play,
-                                                                                    Pause,
-                                                                                    Trash2,
-                                                                                    RotateCcw,
-                                                                                };
-                                                                            const TaskIcon =
-                                                                                iconMap[
-                                                                                    task
-                                                                                        .icon
-                                                                                ] ||
-                                                                                Target;
-                                                                            return (
-                                                                                <TaskIcon className='h-4 w-4 text-blue-600' />
-                                                                            );
-                                                                        })()}
-                                                                    </div>
-                                                                    <div>
-                                                                        <CardTitle className='text-lg'>
-                                                                            {
-                                                                                task.title
-                                                                            }
-                                                                        </CardTitle>
-                                                                        <CardDescription className='flex items-center space-x-2'>
-                                                                            <span>
-                                                                                Active
-                                                                                Task
-                                                                            </span>
-                                                                            <Badge
-                                                                                variant='secondary'
-                                                                                className='text-xs'>
-                                                                                {getStatusText(
-                                                                                    task.status
-                                                                                )}
-                                                                            </Badge>
-                                                                        </CardDescription>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </CardHeader>
-                                                        {task.description && (
-                                                            <CardContent>
-                                                                <div className='text-gray-600'>
-                                                                    {
-                                                                        task.description
-                                                                    }
-                                                                </div>
-                                                            </CardContent>
-                                                        )}
-                                                    </Card>
-                                                ))}
+                                    )}
+                                    {editingDescId === task.id ? (
+                                        <textarea
+                                            name='description'
+                                            className='border rounded w-full text-gray-600 mb-2'
+                                            value={editDesc}
+                                            onChange={(e) =>
+                                                setEditDesc(e.target.value)
+                                            }
+                                            onBlur={() =>
+                                                handleEditDescSave(task.id)
+                                            }
+                                            onKeyDown={(e) =>
+                                                handleEditDescKeyDown(
+                                                    e,
+                                                    task.id
+                                                )
+                                            }
+                                            autoFocus
+                                        />
+                                    ) : (
+                                        task.description && (
+                                            <div
+                                                className='text-gray-600 cursor-pointer hover:underline'
+                                                onClick={() =>
+                                                    handleEditDescClick(task)
+                                                }
+                                                title='Click to edit'>
+                                                {task.description}
                                             </div>
-                                        )}
+                                        )
+                                    )}
+                                    <div className='flex items-center gap-4 mt-2 justify-between'>
+                                        <div className='flex items-center gap-2'>
+                                            <Button
+                                                size='sm'
+                                                className={`${
+                                                    timers[task.id]
+                                                        ? "bg-red-600 hover:bg-red-700"
+                                                        : "bg-green-600 hover:bg-green-700"
+                                                } text-white`}
+                                                onClick={() =>
+                                                    timers[task.id]
+                                                        ? handleStop(task.id)
+                                                        : handleStart(task.id)
+                                                }>
+                                                {timers[task.id] ? (
+                                                    <>
+                                                        <Pause className='h-4 w-4 mr-1' />
+                                                        Stop
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <Play className='h-4 w-4 mr-1' />
+                                                        Start
+                                                    </>
+                                                )}
+                                            </Button>
+                                            <span className='font-mono'>
+                                                {timers[task.id]
+                                                    ? formatTime(
+                                                          elapsed[task.id] || 0
+                                                      )
+                                                    : formatTime(
+                                                          todayWork[task.id] ||
+                                                              0
+                                                      )}
+                                            </span>
+                                            <span className='text-xs text-gray-500'>
+                                                {timers[task.id]
+                                                    ? "Timer running"
+                                                    : "Today"}
+                                            </span>
+                                        </div>
+                                        <div className='flex items-center gap-2'>
+                                            <Button
+                                                size='sm'
+                                                variant='outline'
+                                                className='bg-green-100 text-green-700 hover:bg-green-200 border-green-200'
+                                                onClick={() =>
+                                                    handleCompleteTask(task.id)
+                                                }
+                                                title='Mark as Complete'>
+                                                <Check className='h-4 w-4 mr-1' />
+                                                Finish
+                                            </Button>
+                                            <Button
+                                                size='sm'
+                                                variant='outline'
+                                                className='bg-red-100 text-red-700 hover:bg-red-200 border-red-200'
+                                                onClick={() =>
+                                                    handleDeleteTask(task.id)
+                                                }
+                                                title='Delete Task'>
+                                                <Trash2 className='h-4 w-4 mr-1' />
+                                                Delete
+                                            </Button>
+                                        </div>
                                     </div>
-                                )
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+            )}
+
+            {/* Work History Tab */}
+            {activeTab === "history" && (
+                <div className='space-y-6'>
+                    <div className='flex flex-col gap-4 mb-2'>
+                        <h2 className='text-xl font-bold'>Work History</h2>
+                        <div className='flex items-center gap-2'>
+                            <Button
+                                size='sm'
+                                variant={
+                                    historyFilter === "daily"
+                                        ? "default"
+                                        : "outline"
+                                }
+                                onClick={() => setHistoryFilter("daily")}
+                                className={
+                                    historyFilter === "daily"
+                                        ? "bg-[#335c67] text-[#fff3b0]"
+                                        : ""
+                                }>
+                                Daily
+                            </Button>
+                            <Button
+                                size='sm'
+                                variant={
+                                    historyFilter === "weekly"
+                                        ? "default"
+                                        : "outline"
+                                }
+                                onClick={() => setHistoryFilter("weekly")}
+                                className={
+                                    historyFilter === "weekly"
+                                        ? "bg-[#335c67] text-[#fff3b0]"
+                                        : ""
+                                }>
+                                Weekly
+                            </Button>
+                            <Button
+                                size='sm'
+                                variant={
+                                    historyFilter === "monthly"
+                                        ? "default"
+                                        : "outline"
+                                }
+                                onClick={() => setHistoryFilter("monthly")}
+                                className={
+                                    historyFilter === "monthly"
+                                        ? "bg-[#335c67] text-[#fff3b0]"
+                                        : ""
+                                }>
+                                Monthly
+                            </Button>
+                            <div className='ml-auto'>
+                                <Button
+                                    size='sm'
+                                    variant='outline'
+                                    onClick={() => setShowReport(!showReport)}
+                                    className={`flex items-center gap-2 ${
+                                        showReport ? "border-accent" : ""
+                                    }`}>
+                                    {showReport ? "Hide Report" : "Show Report"}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                    {showReport ? (
+                        // Show only the report when showReport is true
+                        Object.keys(dailyReport).length > 0 ? (
+                            <div className='space-y-4'>
+                                <h3 className='text-lg font-semibold text-gray-700'>
+                                    Daily Work Report
+                                </h3>
+                                <div className='space-y-3'>
+                                    {Object.entries(dailyReport)
+                                        .sort(
+                                            ([a], [b]) =>
+                                                new Date(b) - new Date(a)
+                                        )
+                                        .map(([date, dayData]) => (
+                                            <div
+                                                key={date}
+                                                className='border rounded-lg p-4 bg-white'>
+                                                <div className='flex items-center justify-between'>
+                                                    <div className='flex items-center gap-3'>
+                                                        <div className='flex items-center gap-2'>
+                                                            <Button
+                                                                size='sm'
+                                                                variant='ghost'
+                                                                onClick={() =>
+                                                                    toggleDayCollapse(
+                                                                        date
+                                                                    )
+                                                                }
+                                                                className='p-1 h-6 w-6'>
+                                                                {collapsedDays[
+                                                                    date
+                                                                ] ? (
+                                                                    <ChevronRight className='h-4 w-4' />
+                                                                ) : (
+                                                                    <ChevronDown className='h-4 w-4' />
+                                                                )}
+                                                            </Button>
+                                                            <span className='font-semibold'>
+                                                                {new Date(
+                                                                    date
+                                                                ).toLocaleDateString(
+                                                                    "en-US",
+                                                                    {
+                                                                        weekday:
+                                                                            "long",
+                                                                        year: "numeric",
+                                                                        month: "long",
+                                                                        day: "numeric",
+                                                                    }
+                                                                )}
+                                                            </span>
+                                                        </div>
+                                                        <Badge
+                                                            variant='secondary'
+                                                            className='text-sm'>
+                                                            {
+                                                                dayData.tasks
+                                                                    .length
+                                                            }{" "}
+                                                            task
+                                                            {dayData.tasks
+                                                                .length !== 1
+                                                                ? "s"
+                                                                : ""}
+                                                        </Badge>
+                                                    </div>
+                                                    <div className='font-mono font-semibold text-lg text-[#335c67]'>
+                                                        {formatTime(
+                                                            dayData.totalTime
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {!collapsedDays[date] && (
+                                                    <div className='mt-3 space-y-2'>
+                                                        {dayData.tasks.map(
+                                                            (task) => (
+                                                                <div
+                                                                    key={
+                                                                        task.id
+                                                                    }
+                                                                    className='flex items-center justify-between py-2 px-3 bg-gray-50 rounded'>
+                                                                    <div className='flex-1'>
+                                                                        <div className='font-medium'>
+                                                                            {task
+                                                                                .task
+                                                                                ?.title ||
+                                                                                "Untitled Task"}
+                                                                        </div>
+                                                                        {task
+                                                                            .task
+                                                                            ?.description && (
+                                                                            <div className='text-sm text-gray-500'>
+                                                                                {
+                                                                                    task
+                                                                                        .task
+                                                                                        .description
+                                                                                }
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className='flex items-center gap-2'>
+                                                                        {task
+                                                                            .task
+                                                                            ?.status ===
+                                                                            "completed" && (
+                                                                            <Badge
+                                                                                variant='outline'
+                                                                                className='text-xs py-1 px-4'>
+                                                                                Completed
+                                                                            </Badge>
+                                                                        )}
+                                                                        <span className='font-mono text-sm'>
+                                                                            {formatTime(
+                                                                                task.totalTime
+                                                                            )}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            )
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        ))}
+                                </div>
+                            </div>
+                        ) : (
+                            <div className='text-center py-8'>
+                                <p className='text-gray-500'>
+                                    No work history found for the selected
+                                    period.
+                                </p>
+                            </div>
+                        )
+                    ) : (
+                        // Show only the task list when showReport is false
+                        <div className='space-y-4'>
+                            <div className='mb-2 text-lg font-semibold'>
+                                Total Time: {formatTime(totalHistoryTime)}
+                            </div>
+                            {historyLoading ? (
+                                <div className='text-center py-8'>
+                                    <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-[#335c67] mx-auto'></div>
+                                    <p className='mt-2 text-gray-600'>
+                                        Loading work history...
+                                    </p>
+                                </div>
+                            ) : workHistory.length === 0 &&
+                              Object.keys(runningTimeMap).length === 0 ? (
+                                <div className='text-center py-8'>
+                                    <p className='text-gray-500'>
+                                        No work recorded in this period.
+                                    </p>
+                                </div>
+                            ) : (
+                                <ul className='space-y-2'>
+                                    {workHistory.map((w) => {
+                                        const extra =
+                                            w.date.startsWith(todayStr) &&
+                                            runningTimeMap[w.id]
+                                                ? runningTimeMap[w.id]
+                                                : 0;
+                                        return (
+                                            <li
+                                                key={w.id}
+                                                className='border rounded p-3 bg-white flex flex-col md:flex-row md:items-center md:gap-4'>
+                                                <div className='flex-1'>
+                                                    <div className='font-semibold'>
+                                                        {w.task?.title ||
+                                                            "Untitled Task"}
+                                                    </div>
+                                                    <div className='text-xs text-gray-500'>
+                                                        {w.task?.description}
+                                                    </div>
+                                                </div>
+                                                <div className='flex items-center gap-2 mt-2 md:mt-0'>
+                                                    {w.task &&
+                                                        w.task.status ===
+                                                            "completed" && (
+                                                            <Button
+                                                                size='sm'
+                                                                variant='outline'
+                                                                className='ml-2 bg-blue-100 text-blue-700 hover:bg-blue-200 border-blue-200'
+                                                                onClick={() =>
+                                                                    handleReopenTask(
+                                                                        w.task
+                                                                            .id
+                                                                    )
+                                                                }
+                                                                title='Reopen Task'>
+                                                                Reopen
+                                                            </Button>
+                                                        )}
+
+                                                    <span className='text-xs text-gray-500'>
+                                                        {new Date(
+                                                            w.date
+                                                        ).toLocaleDateString()}
+                                                    </span>
+                                                    <span className='font-mono text-base'>
+                                                        {formatTime(
+                                                            w.totalTime + extra
+                                                        )}
+                                                    </span>
+                                                </div>
+                                            </li>
+                                        );
+                                    })}
+                                    {/* Show pseudo-entries for running timers with no workHistory yet */}
+                                    {Object.entries(runningTimeMap)
+                                        .filter(([k]) => k.startsWith("new-"))
+                                        .map(([k, v]) => {
+                                            const taskId = Number(
+                                                k.replace("new-", "")
+                                            );
+                                            const task = tasks.find(
+                                                (t) => t.id === taskId
+                                            );
+                                            return (
+                                                <li
+                                                    key={k}
+                                                    className='border rounded p-3 bg-white flex flex-col md:flex-row md:items-center md:gap-4'>
+                                                    <div className='flex-1'>
+                                                        <div className='font-semibold'>
+                                                            {task?.title ||
+                                                                "Untitled Task"}
+                                                        </div>
+                                                        <div className='text-xs text-gray-500'>
+                                                            {task?.description}
+                                                        </div>
+                                                    </div>
+                                                    <div className='flex items-center gap-2 mt-2 md:mt-0'>
+                                                        <span className='font-mono text-base'>
+                                                            {formatTime(v)}
+                                                        </span>
+                                                        <span className='text-xs text-gray-500'>
+                                                            {new Date().toLocaleDateString()}
+                                                        </span>
+                                                    </div>
+                                                </li>
+                                            );
+                                        })}
+                                </ul>
                             )}
                         </div>
                     )}
                 </div>
             )}
-
-            {/* Edit Category Dialog */}
-            <Dialog
-                open={isEditCategoryDialogOpen}
-                onOpenChange={setIsEditCategoryDialogOpen}>
-                <DialogContent className='max-w-md'>
-                    <DialogHeader>
-                        <DialogTitle>Edit Category</DialogTitle>
-                        <DialogDescription>
-                            Update the category name and icon.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className='space-y-4'>
-                        <div className='space-y-2'>
-                            <Label htmlFor='edit-category-name'>
-                                Category Name
-                            </Label>
-                            <Input
-                                id='edit-category-name'
-                                value={editingCategory?.name || ""}
-                                onChange={(e) =>
-                                    setEditingCategory({
-                                        ...editingCategory,
-                                        name: e.target.value,
-                                    })
-                                }
-                                placeholder='Enter category name'
-                            />
-                        </div>
-                        <div className='space-y-2'>
-                            <Label>Category Icon</Label>
-                            <div className='grid grid-cols-8 gap-2 max-h-40 overflow-y-auto border rounded-lg p-3'>
-                                {Object.entries(iconMap).map(
-                                    ([iconName, IconComponent]) => (
-                                        <button
-                                            key={iconName}
-                                            onClick={() =>
-                                                setEditingCategory({
-                                                    ...editingCategory,
-                                                    icon: iconName,
-                                                })
-                                            }
-                                            className={`p-2 rounded-lg border-2 transition-colors ${
-                                                editingCategory?.icon ===
-                                                iconName
-                                                    ? "border-blue-500 bg-blue-50"
-                                                    : "border-gray-200 hover:border-gray-300"
-                                            }`}>
-                                            <IconComponent className='h-4 w-4' />
-                                        </button>
-                                    )
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button
-                            variant='outline'
-                            onClick={() => {
-                                setIsEditCategoryDialogOpen(false);
-                                setEditingCategory(null);
-                            }}>
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={handleUpdateCategory}
-                            disabled={!editingCategory?.name?.trim()}>
-                            Update Category
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
         </div>
     );
 }

@@ -36,21 +36,11 @@ export default async function handler(req, res) {
             // Get completed tasks that don't have daily work records
             let completedTasksWhere = { status: "completed" };
             if (startDate && endDate) {
-                // Get tasks that were either created or completed within the date range
-                completedTasksWhere.OR = [
-                    {
-                        createdAt: {
-                            gte: new Date(startDate),
-                            lte: new Date(endDate),
-                        },
-                    },
-                    {
-                        updatedAt: {
-                            gte: new Date(startDate),
-                            lte: new Date(endDate),
-                        },
-                    },
-                ];
+                // Only include tasks that were completed (updated) within the date range
+                completedTasksWhere.updatedAt = {
+                    gte: new Date(startDate),
+                    lte: new Date(endDate),
+                };
             }
 
             const completedTasks = await prisma.task.findMany({
