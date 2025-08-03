@@ -66,6 +66,8 @@ export default function AgendaPage() {
     const [isAddRowDialogOpen, setIsAddRowDialogOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [collapsedSheets, setCollapsedSheets] = useState(new Set());
+    const [isEditing, setIsEditing] = useState(false);
+    const [editingRowId, setEditingRowId] = useState(null);
     const [newSheet, setNewSheet] = useState({
         name: "",
         columns: [],
@@ -129,9 +131,23 @@ export default function AgendaPage() {
                 value: newRow[column.id] || "",
             }));
 
-            await axios.post(`/api/agenda-sheets/${selectedSheet.id}/rows`, {
-                cells,
-            });
+            if (isEditing) {
+                // Update existing row
+                await axios.put(
+                    `/api/agenda-sheets/${selectedSheet.id}/rows/${editingRowId}`,
+                    {
+                        cells,
+                    }
+                );
+            } else {
+                // Add new row
+                await axios.post(
+                    `/api/agenda-sheets/${selectedSheet.id}/rows`,
+                    {
+                        cells,
+                    }
+                );
+            }
 
             // Refresh the selected sheet
             const response = await axios.get(
@@ -140,8 +156,10 @@ export default function AgendaPage() {
             setSelectedSheet(response.data);
             setNewRow({});
             setIsAddRowDialogOpen(false);
+            setIsEditing(false);
+            setEditingRowId(null);
         } catch (error) {
-            console.error("Error adding row:", error);
+            console.error("Error adding/editing row:", error);
         }
     };
 
@@ -174,6 +192,42 @@ export default function AgendaPage() {
                 return <Hash className='h-3 w-3' />;
             default:
                 return <FileText className='h-3 w-3' />;
+        }
+    };
+
+    const handleEditRow = (sheetId, row) => {
+        // Find the sheet from the sheets array
+        const sheet = sheets.find((s) => s.id === sheetId);
+        setSelectedSheet(sheet);
+
+        // Populate the form with existing row data
+        const rowData = row.cells.reduce(
+            (acc, cell) => ({
+                ...acc,
+                [cell.columnId]: cell.value,
+            }),
+            {}
+        );
+        setNewRow(rowData);
+
+        setIsAddRowDialogOpen(true);
+        setIsEditing(true);
+        setEditingRowId(row.id);
+    };
+
+    const handleDeleteRow = async (sheetId, rowId) => {
+        if (confirm("Are you sure you want to delete this row?")) {
+            try {
+                await axios.delete(
+                    `/api/agenda-sheets/${sheetId}/rows/${rowId}`
+                );
+                const response = await axios.get(
+                    `/api/agenda-sheets/${sheetId}`
+                );
+                setSelectedSheet(response.data);
+            } catch (error) {
+                console.error("Error deleting row:", error);
+            }
         }
     };
 
@@ -383,6 +437,15 @@ export default function AgendaPage() {
                                                             </th>
                                                         )
                                                     )}
+                                                    <th
+                                                        className='text-left p-3 font-bold'
+                                                        style={{
+                                                            color: "#fff3b0",
+                                                            backgroundColor:
+                                                                "#335c67",
+                                                        }}>
+                                                        Actions
+                                                    </th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -413,15 +476,43 @@ export default function AgendaPage() {
                                                                     );
                                                                 }
                                                             )}
+                                                            <td className='p-3'>
+                                                                <div className='flex gap-2'>
+                                                                    <Button
+                                                                        size='sm'
+                                                                        variant='outline'
+                                                                        onClick={() =>
+                                                                            handleEditRow(
+                                                                                sheet.id,
+                                                                                row
+                                                                            )
+                                                                        }
+                                                                        className='h-8 w-8 p-0'>
+                                                                        <Edit className='h-3 w-3' />
+                                                                    </Button>
+                                                                    <Button
+                                                                        size='sm'
+                                                                        variant='outline'
+                                                                        onClick={() =>
+                                                                            handleDeleteRow(
+                                                                                sheet.id,
+                                                                                row.id
+                                                                            )
+                                                                        }
+                                                                        className='h-8 w-8 p-0 text-red-600 hover:text-red-700'>
+                                                                        <Trash2 className='h-3 w-3' />
+                                                                    </Button>
+                                                                </div>
+                                                            </td>
                                                         </tr>
                                                     ))
                                                 ) : (
                                                     <tr>
                                                         <td
                                                             colSpan={
-                                                                sheet.columns
+                                                                (sheet.columns
                                                                     ?.length ||
-                                                                1
+                                                                    1) + 1
                                                             }
                                                             className='p-4 text-center text-gray-500'>
                                                             No data yet. Click
@@ -448,7 +539,9 @@ export default function AgendaPage() {
                     <DialogContent>
                         <DialogHeader>
                             <DialogTitle>
-                                Add New Row to {selectedSheet.name}
+                                {isEditing
+                                    ? `Edit Row in ${selectedSheet.name}`
+                                    : `Add New Row to ${selectedSheet.name}`}
                             </DialogTitle>
                         </DialogHeader>
                         <div className='space-y-4'>
@@ -492,7 +585,7 @@ export default function AgendaPage() {
                                 </Button>
                                 <Button onClick={addRow}>
                                     <Save className='h-4 w-4 mr-2' />
-                                    Add Row
+                                    {isEditing ? "Update Row" : "Add Row"}
                                 </Button>
                             </div>
                         </div>
