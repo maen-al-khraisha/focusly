@@ -29,7 +29,15 @@ export default async function handler(req, res) {
             return res.status(200).json(events);
         } catch (error) {
             console.error("Error fetching calendar events:", error);
-            return res.status(500).json({ error: "Failed to fetch calendar events" });
+            console.error("Error details:", {
+                message: error.message,
+                code: error.code,
+                meta: error.meta
+            });
+            return res.status(500).json({ 
+                error: "Failed to fetch calendar events", 
+                details: error.message 
+            });
         }
     }
 
