@@ -79,6 +79,12 @@ export default function CalendarPage() {
                 const response = await axios.delete(`/api/calendar-events/${eventId}`);
                 if (response.status === 204) {
                     setEvents(events.filter(event => event.id !== eventId));
+                    // Close the edit dialog if it's open
+                    if (isEditEventDialogOpen) {
+                        setIsEditEventDialogOpen(false);
+                        setSelectedEvent(null);
+                        setNewEvent({ name: "", description: "", link: "", time: "", date: "" });
+                    }
                 }
             } catch (error) {
                 console.error("Error deleting event:", error);
