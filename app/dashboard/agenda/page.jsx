@@ -357,13 +357,16 @@ export default function AgendaPage() {
                                     <div className='overflow-x-auto'>
                                         <table className='w-full'>
                                             <thead>
-                                                <tr className='border-b'>
+                                                <tr className='border-b' style={{ backgroundColor: '#f8f9fa' }}>
                                                     {sheet.columns?.map(
                                                         (column) => (
                                                             <th
                                                                 key={column.id}
                                                                 className='text-left p-3 font-bold'
-                                                                style={{ color: '#335c67' }}>
+                                                                style={{
+                                                                    color: "#335c67",
+                                                                    backgroundColor: '#f8f9fa'
+                                                                }}>
                                                                 <div className='flex items-center gap-2'>
                                                                     {getColumnTypeIcon(
                                                                         column.type
