@@ -12,6 +12,7 @@ import { CheckCircle, Calendar, BookOpen, Target, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { redirect } from "next/navigation";
 import DarkModeToggle from "@/components/DarkModeToggle";
+import Image from "next/image";
 
 const navigation = [
     { name: "Tasks", href: "/dashboard/tasks", icon: CheckCircle },
@@ -48,10 +49,15 @@ export default function DashboardLayout({ children }) {
                     <Card className='flex flex-1 flex-col rounded-none border-0 bg-primary-50'>
                         <div className='flex h-16 shrink-0 items-center justify-between px-4'>
                             <div className='flex items-center space-x-2'>
-                                <img
-                                    src='/img/logo_portrait.png'
-                                    alt='Focus Mint Logo'
+                                <Image
+                                    src='/img/optimized/logo_portrait_300x400.webp'
+                                    alt='Focus Mint Dashboard - Productivity App Logo'
+                                    width={50}
+                                    height={50}
                                     className='h-[50px] w-auto mr-3'
+                                    loading='lazy'
+                                    placeholder='blur'
+                                    blurDataURL='data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=='
                                 />
                             </div>
                             <Button
@@ -94,10 +100,15 @@ export default function DashboardLayout({ children }) {
                     <div className='flex h-auto shrink-0 items-center px-4 align-center justify-center'>
                         <Link href='/'>
                             <div className='flex items-center m-6 '>
-                                <img
-                                    src='/img/logo_portrait.png'
-                                    alt='Focus Mint Logo'
+                                <Image
+                                    src='/img/optimized/logo_portrait_600x800.webp'
+                                    alt='Focus Mint Dashboard - Productivity App Logo'
+                                    width={200}
+                                    height={100}
                                     className='h-auto w-full mr-3'
+                                    loading='lazy'
+                                    placeholder='blur'
+                                    blurDataURL='data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=='
                                 />
                             </div>
                         </Link>

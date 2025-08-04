@@ -14,6 +14,7 @@ import {
 import { CheckCircle, Calendar, BookOpen, Target, Timer } from "lucide-react";
 
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function Home() {
     const { user } = useUser();
@@ -60,10 +61,15 @@ export default function Home() {
             <header className='container mx-auto px-4 py-6'>
                 <nav className='flex items-center justify-between'>
                     <div className='flex items-center space-x-2'>
-                        <img
-                            src='/img/logo_landscape.png'
-                            alt='Focus Mint Logo'
+                        <Image
+                            src='/img/optimized/logo_landscape_1200x400.webp'
+                            alt='Focus Mint - Your All-in-One Productivity Companion Logo'
+                            width={300}
+                            height={100}
                             className='h-[100px] w-auto mr-3'
+                            priority
+                            placeholder="blur"
+                            blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
                         />
                     </div>
                     <div className='flex items-center gap-4'>

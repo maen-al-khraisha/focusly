@@ -1,34 +1,21 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
-import {
-    Plus,
-    Calendar,
-    Clock,
-    Link,
-    Edit,
-    Trash2,
-    ChevronLeft,
-    ChevronRight,
-    Save,
-    X,
-} from "lucide-react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import AddEventDialog from "@/components/calendar/AddEventDialog";
+import EditEventDialog from "@/components/calendar/EditEventDialog";
+import CalendarHeader from "@/components/calendar/CalendarHeader";
+import CalendarGrid from "@/components/calendar/CalendarGrid";
 
 export default function CalendarPage() {
-    const [currentDate, setCurrentDate] = useState(new Date());
+    const [currentDate, setCurrentDate] = useState(() => {
+        // Use a consistent date for SSR to avoid hydration mismatch
+        if (typeof window === 'undefined') {
+            return new Date(2024, 0, 1); // Default date for SSR
+        }
+        return new Date();
+    });
     const [events, setEvents] = useState([]);
     const [isAddEventDialogOpen, setIsAddEventDialogOpen] = useState(false);
     const [isEditEventDialogOpen, setIsEditEventDialogOpen] = useState(false);
@@ -41,11 +28,7 @@ export default function CalendarPage() {
         date: "",
     });
 
-    useEffect(() => {
-        fetchEvents();
-    }, [currentDate]);
-
-    const fetchEvents = async () => {
+    const fetchEvents = useCallback(async () => {
         try {
             const year = currentDate.getFullYear();
             const month = currentDate.getMonth() + 1;
@@ -56,7 +39,11 @@ export default function CalendarPage() {
         } catch (error) {
             console.error("Error fetching events:", error);
         }
-    };
+    }, [currentDate]);
+
+    useEffect(() => {
+        fetchEvents();
+    }, [fetchEvents]);
 
     const createEvent = async () => {
         try {
@@ -144,37 +131,6 @@ export default function CalendarPage() {
         setIsEditEventDialogOpen(true);
     };
 
-    const getDaysInMonth = (date) => {
-        const year = date.getFullYear();
-        const month = date.getMonth();
-        const firstDay = new Date(year, month, 1);
-        const lastDay = new Date(year, month + 1, 0);
-        const daysInMonth = lastDay.getDate();
-        const startingDayOfWeek = firstDay.getDay();
-
-        const days = [];
-        for (let i = 0; i < startingDayOfWeek; i++) {
-            days.push(null);
-        }
-        for (let i = 1; i <= daysInMonth; i++) {
-            days.push(new Date(year, month, i));
-        }
-        return days;
-    };
-
-    const getEventsForDate = (date) => {
-        if (!date) return [];
-        const dateString = date.toISOString().split("T")[0];
-        return events.filter(
-            (event) => event.date.split("T")[0] === dateString
-        );
-    };
-
-    const formatTime = (time) => {
-        if (!time) return "";
-        return time;
-    };
-
     const navigateMonth = (direction) => {
         setCurrentDate(
             new Date(
@@ -185,334 +141,43 @@ export default function CalendarPage() {
         );
     };
 
-    const isToday = (date) => {
-        const today = new Date();
-        return date && date.toDateString() === today.toDateString();
-    };
-
-    const isCurrentMonth = (date) => {
-        return date && date.getMonth() === currentDate.getMonth();
-    };
-
-    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const monthNames = [
-        "January",
-        "February",
-        "March",
-        "April",
-        "May",
-        "June",
-        "July",
-        "August",
-        "September",
-        "October",
-        "November",
-        "December",
-    ];
-
     return (
         <div className='p-6'>
             <div className='flex justify-end items-center mb-6'>
-                <Dialog
-                    open={isAddEventDialogOpen}
-                    onOpenChange={setIsAddEventDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button>
-                            <Plus className='h-4 w-4 mr-2' />
-                            Add Event
-                        </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                        <DialogHeader>
-                            <DialogTitle>Add New Event</DialogTitle>
-                        </DialogHeader>
-                        <div className='space-y-4'>
-                            <div>
-                                <label className='text-sm font-medium'>
-                                    Event Name
-                                </label>
-                                <Input
-                                    value={newEvent.name}
-                                    onChange={(e) =>
-                                        setNewEvent({
-                                            ...newEvent,
-                                            name: e.target.value,
-                                        })
-                                    }
-                                    placeholder='Enter event name'
-                                />
-                            </div>
-                            <div>
-                                <label className='text-sm font-medium'>
-                                    Description
-                                </label>
-                                <Textarea
-                                    value={newEvent.description}
-                                    onChange={(e) =>
-                                        setNewEvent({
-                                            ...newEvent,
-                                            description: e.target.value,
-                                        })
-                                    }
-                                    placeholder='Enter event description'
-                                />
-                            </div>
-                            <div>
-                                <label className='text-sm font-medium'>
-                                    Link
-                                </label>
-                                <Input
-                                    value={newEvent.link}
-                                    onChange={(e) =>
-                                        setNewEvent({
-                                            ...newEvent,
-                                            link: e.target.value,
-                                        })
-                                    }
-                                    placeholder='Enter event link (optional)'
-                                />
-                            </div>
-                            <div className='grid grid-cols-2 gap-4'>
-                                <div>
-                                    <label className='text-sm font-medium'>
-                                        Date
-                                    </label>
-                                    <Input
-                                        type='date'
-                                        value={newEvent.date}
-                                        onChange={(e) =>
-                                            setNewEvent({
-                                                ...newEvent,
-                                                date: e.target.value,
-                                            })
-                                        }
-                                    />
-                                </div>
-                                <div>
-                                    <label className='text-sm font-medium'>
-                                        Time
-                                    </label>
-                                    <Input
-                                        type='time'
-                                        value={newEvent.time}
-                                        onChange={(e) =>
-                                            setNewEvent({
-                                                ...newEvent,
-                                                time: e.target.value,
-                                            })
-                                        }
-                                    />
-                                </div>
-                            </div>
-                            <div className='flex justify-end gap-2'>
-                                <Button
-                                    variant='outline'
-                                    onClick={() =>
-                                        setIsAddEventDialogOpen(false)
-                                    }>
-                                    Cancel
-                                </Button>
-                                <Button onClick={createEvent}>
-                                    <Save className='h-4 w-4 mr-2' />
-                                    Add Event
-                                </Button>
-                            </div>
-                        </div>
-                    </DialogContent>
-                </Dialog>
+                <AddEventDialog
+                    isDialogOpen={isAddEventDialogOpen}
+                    setIsDialogOpen={setIsAddEventDialogOpen}
+                    newEvent={newEvent}
+                    setNewEvent={setNewEvent}
+                    onCreateEvent={createEvent}
+                />
             </div>
 
             <Card>
                 <CardHeader>
-                    <div className='flex justify-between items-center'>
-                        <Button
-                            variant='outline'
-                            size='sm'
-                            onClick={() => navigateMonth(-1)}>
-                            <ChevronLeft className='h-4 w-4' />
-                        </Button>
-                        <CardTitle className='text-xl'>
-                            {monthNames[currentDate.getMonth()]}{" "}
-                            {currentDate.getFullYear()}
-                        </CardTitle>
-                        <Button
-                            variant='outline'
-                            size='sm'
-                            onClick={() => navigateMonth(1)}>
-                            <ChevronRight className='h-4 w-4' />
-                        </Button>
-                    </div>
+                    <CalendarHeader
+                        currentDate={currentDate}
+                        onNavigateMonth={navigateMonth}
+                    />
                 </CardHeader>
                 <CardContent>
-                    <div className='grid grid-cols-7 gap-1'>
-                        {dayNames.map((day) => (
-                            <div
-                                key={day}
-                                className='p-2 text-center font-medium text-gray-600'>
-                                {day}
-                            </div>
-                        ))}
-                        {getDaysInMonth(currentDate).map((date, index) => (
-                            <div
-                                key={index}
-                                className={`p-2 min-h-[100px] border ${
-                                    isToday(date)
-                                        ? "bg-blue-50 border-blue-200"
-                                        : "border-gray-200"
-                                } ${
-                                    !isCurrentMonth(date) ? "text-gray-400" : ""
-                                }`}>
-                                {date && (
-                                    <>
-                                        <div className='text-sm font-medium mb-1'>
-                                            <div className='text-xs text-gray-500 mb-1'>
-                                                {dayNames[date.getDay()]}
-                                            </div>
-                                            {date.getDate()}
-                                        </div>
-                                        <div className='space-y-1'>
-                                            {getEventsForDate(date).map(
-                                                (event) => (
-                                                    <div
-                                                        key={event.id}
-                                                        className='text-xs p-1 bg-green-100 rounded cursor-pointer hover:bg-green-200'
-                                                        onClick={() =>
-                                                            handleEditEvent(
-                                                                event
-                                                            )
-                                                        }>
-                                                        <div className='font-medium truncate'>
-                                                            {event.name}
-                                                        </div>
-                                                        {event.time && (
-                                                            <div className='text-gray-600 flex items-center gap-1'>
-                                                                <Clock className='h-2 w-2' />
-                                                                {formatTime(
-                                                                    event.time
-                                                                )}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )
-                                            )}
-                                        </div>
-                                    </>
-                                )}
-                            </div>
-                        ))}
-                    </div>
+                    <CalendarGrid
+                        currentDate={currentDate}
+                        events={events}
+                        onEventClick={handleEditEvent}
+                    />
                 </CardContent>
             </Card>
 
-            {/* Edit Event Dialog */}
-            <Dialog
-                open={isEditEventDialogOpen}
-                onOpenChange={setIsEditEventDialogOpen}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Edit Event</DialogTitle>
-                    </DialogHeader>
-                    <div className='space-y-4'>
-                        <div>
-                            <label className='text-sm font-medium'>
-                                Event Name
-                            </label>
-                            <Input
-                                value={newEvent.name}
-                                onChange={(e) =>
-                                    setNewEvent({
-                                        ...newEvent,
-                                        name: e.target.value,
-                                    })
-                                }
-                                placeholder='Enter event name'
-                            />
-                        </div>
-                        <div>
-                            <label className='text-sm font-medium'>
-                                Description
-                            </label>
-                            <Textarea
-                                value={newEvent.description}
-                                onChange={(e) =>
-                                    setNewEvent({
-                                        ...newEvent,
-                                        description: e.target.value,
-                                    })
-                                }
-                                placeholder='Enter event description'
-                            />
-                        </div>
-                        <div>
-                            <label className='text-sm font-medium'>Link</label>
-                            <Input
-                                value={newEvent.link}
-                                onChange={(e) =>
-                                    setNewEvent({
-                                        ...newEvent,
-                                        link: e.target.value,
-                                    })
-                                }
-                                placeholder='Enter event link (optional)'
-                            />
-                        </div>
-                        <div className='grid grid-cols-2 gap-4'>
-                            <div>
-                                <label className='text-sm font-medium'>
-                                    Date
-                                </label>
-                                <Input
-                                    type='date'
-                                    value={newEvent.date}
-                                    onChange={(e) =>
-                                        setNewEvent({
-                                            ...newEvent,
-                                            date: e.target.value,
-                                        })
-                                    }
-                                />
-                            </div>
-                            <div>
-                                <label className='text-sm font-medium'>
-                                    Time
-                                </label>
-                                <Input
-                                    type='time'
-                                    value={newEvent.time}
-                                    onChange={(e) =>
-                                        setNewEvent({
-                                            ...newEvent,
-                                            time: e.target.value,
-                                        })
-                                    }
-                                />
-                            </div>
-                        </div>
-                        <div className='flex justify-between'>
-                            <Button
-                                variant='outline'
-                                onClick={() => deleteEvent(selectedEvent?.id)}
-                                className='text-red-600 hover:text-red-700'>
-                                <Trash2 className='h-4 w-4 mr-2' />
-                                Delete
-                            </Button>
-                            <div className='flex gap-2'>
-                                <Button
-                                    variant='outline'
-                                    onClick={() =>
-                                        setIsEditEventDialogOpen(false)
-                                    }>
-                                    Cancel
-                                </Button>
-                                <Button onClick={updateEvent}>
-                                    <Save className='h-4 w-4 mr-2' />
-                                    Update Event
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
+            <EditEventDialog
+                isDialogOpen={isEditEventDialogOpen}
+                setIsDialogOpen={setIsEditEventDialogOpen}
+                selectedEvent={selectedEvent}
+                newEvent={newEvent}
+                setNewEvent={setNewEvent}
+                onUpdateEvent={updateEvent}
+                onDeleteEvent={deleteEvent}
+            />
         </div>
     );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import OptimizedImage from "./OptimizedImage";
 
 interface SocialCardProps {
     author: string;
@@ -31,10 +32,13 @@ export const SocialCard: React.FC<SocialCardProps> = ({
                  hover:-translate-y-1 hover:shadow-[0_4px_24px_rgba(0,255,255,0.2)]'>
             {/* Header */}
             <div className='flex items-center space-x-3'>
-                <img
+                <OptimizedImage
                     src={avatar}
+                    alt={`Profile picture of ${author} (@${username})`}
+                    width={40}
+                    height={40}
                     className='h-10 w-10 rounded-full object-cover'
-                    alt='avatar'
+                    fallbackSrc="/img/optimized/default-avatar.png"
                 />
                 <div>
                     <p className='font-semibold text-white leading-none'>

@@ -1,0 +1,178 @@
+# Focus Mint Robots.txt
+# Allow all search engines to crawl the site
+User-agent: *
+
+# Allow crawling of all pages
+Allow: /
+
+# Disallow sensitive areas
+Disallow: /api/
+Disallow: /_next/
+Disallow: /admin/
+Disallow: /private/
+Disallow: /internal/
+Disallow: /temp/
+Disallow: /cache/
+Disallow: /logs/
+Disallow: /config/
+Disallow: /backup/
+Disallow: /test/
+Disallow: /dev/
+Disallow: /staging/
+
+# Disallow specific file types that shouldn't be indexed
+Disallow: /*.json$
+Disallow: /*.xml$
+Disallow: /*.txt$
+Disallow: /*.log$
+Disallow: /*.sql$
+Disallow: /*.bak$
+Disallow: /*.tmp$
+Disallow: /*.temp$
+
+# Disallow search and filter pages to avoid duplicate content
+Disallow: /*?search=*
+Disallow: /*?filter=*
+Disallow: /*?sort=*
+Disallow: /*?page=*
+Disallow: /*?q=*
+
+# Allow important file types
+Allow: /*.html$
+Allow: /*.htm$
+Allow: /*.css$
+Allow: /*.js$
+Allow: /*.png$
+Allow: /*.jpg$
+Allow: /*.jpeg$
+Allow: /*.gif$
+Allow: /*.svg$
+Allow: /*.ico$
+Allow: /*.webp$
+Allow: /*.pdf$
+
+# Crawl delay (optional - be respectful to server resources)
+Crawl-delay: 1
+
+# Sitemap location
+Sitemap: https://focusmint.com/sitemap.xml
+
+# Additional sitemaps (if you have multiple)
+# Sitemap: https://focusmint.com/sitemap-blog.xml
+# Sitemap: https://focusmint.com/sitemap-products.xml
+
+# Specific rules for different user agents
+
+# Googlebot
+User-agent: Googlebot
+Allow: /
+Disallow: /api/
+Disallow: /_next/
+Crawl-delay: 1
+
+# Bingbot
+User-agent: Bingbot
+Allow: /
+Disallow: /api/
+Disallow: /_next/
+Crawl-delay: 1
+
+# Slurp (Yahoo)
+User-agent: Slurp
+Allow: /
+Disallow: /api/
+Disallow: /_next/
+Crawl-delay: 1
+
+# DuckDuckBot
+User-agent: DuckDuckBot
+Allow: /
+Disallow: /api/
+Disallow: /_next/
+Crawl-delay: 1
+
+# Facebook
+User-agent: facebookexternalhit
+Allow: /
+Disallow: /api/
+Disallow: /_next/
+
+# Twitter
+User-agent: Twitterbot
+Allow: /
+Disallow: /api/
+Disallow: /_next/
+
+# LinkedIn
+User-agent: LinkedInBot
+Allow: /
+Disallow: /api/
+Disallow: /_next/
+
+# Pinterest
+User-agent: Pinterest
+Allow: /
+Disallow: /api/
+Disallow: /_next/
+
+# WhatsApp
+User-agent: WhatsApp
+Allow: /
+Disallow: /api/
+Disallow: /_next/
+
+# Block bad bots
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: dotbot
+Disallow: /
+
+User-agent: rogerbot
+Disallow: /
+
+User-agent: Screaming Frog SEO Spider
+Disallow: /
+
+# Block scrapers
+User-agent: *bot
+Disallow: /api/
+Disallow: /_next/
+
+User-agent: *crawler
+Disallow: /api/
+Disallow: /_next/
+
+User-agent: *spider
+Disallow: /api/
+Disallow: /_next/
+
+# Allow legitimate bots
+User-agent: Googlebot-Image
+Allow: /
+Disallow: /api/
+Disallow: /_next/
+
+User-agent: Googlebot-Mobile
+Allow: /
+Disallow: /api/
+Disallow: /_next/
+
+User-agent: Mediapartners-Google
+Allow: /
+Disallow: /api/
+Disallow: /_next/
+
+# Block archive.org (optional - remove if you want to be archived)
+User-agent: ia_archiver
+Disallow: /
+
+# Block archive.org web crawler
+User-agent: ia_archiver-web
+Disallow: / 
